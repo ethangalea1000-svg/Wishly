@@ -1,0 +1,26 @@
+name: Worker checks
+on:
+  push:
+    branches: [main, production-foundation]
+    paths:
+      - "worker/**"
+      - ".github/workflows/worker-checks.yml"
+  pull_request:
+    paths:
+      - "worker/**"
+      - ".github/workflows/worker-checks.yml"
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package.json
+      - run: npm install
+      - run: npm run typecheck
