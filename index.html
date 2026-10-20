@@ -3,87 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#6d5dfc">
-<meta name="description" content="Démo fictive de Wishly, une application de listes de cadeaux.">
-<title>Wishly — Démo de liste de cadeaux</title>
+<meta name="theme-color" content="#fbf8f4">
+<meta name="description" content="Wishly — démo fictive de listes de cadeaux personnalisables.">
+<title>Wishly — Les envies prennent vie</title>
 <style>
-:root{color-scheme:light;--bg:#f7f6ff;--card:#fff;--ink:#23213a;--muted:#696780;--line:#e8e5f4;--accent:#6d5dfc;--accent2:#f0edff;--good:#19734a;--shadow:0 12px 34px #332b6410}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit}.demo-banner{background:#2e245c;color:white;text-align:center;padding:10px 16px;font-size:13px;font-weight:750;letter-spacing:.02em}.hero{padding:42px 20px 30px;background:linear-gradient(135deg,#6d5dfc,#a28cff);color:#fff}.wrap{max-width:1080px;margin:auto}.brand{font-weight:900;letter-spacing:-.04em;font-size:24px}.eyebrow{display:inline-block;margin-top:25px;padding:7px 11px;background:#ffffff25;border:1px solid #ffffff42;border-radius:99px;font-size:12px;font-weight:800}h1{font-size:clamp(34px,6vw,54px);line-height:1.02;letter-spacing:-.045em;margin:14px 0 12px}.hero p{max-width:620px;line-height:1.65;color:#f3f0ff;margin:0}.hero-note{margin-top:22px;font-size:12px;color:#f3f0ff}.main{padding:26px 20px 60px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.toolbar input,.toolbar select{border:1px solid var(--line);border-radius:12px;background:white;padding:12px 13px;font:inherit;color:var(--ink)}.toolbar input{flex:1;min-width:190px}.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:12px 16px;min-width:115px;box-shadow:var(--shadow)}.stat strong{display:block;font-size:22px}.stat span{color:var(--muted);font-size:12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px}.gift{background:var(--card);border:1px solid var(--line);border-radius:19px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}.gift-visual{min-height:130px;display:grid;place-items:center;background:var(--accent2);font-size:55px}.gift-content{padding:17px;display:flex;flex-direction:column;gap:9px;flex:1}.category{font-size:11px;text-transform:uppercase;font-weight:850;letter-spacing:.08em;color:var(--accent)}.gift h2{font-size:19px;margin:0}.gift p{font-size:14px;line-height:1.5;color:var(--muted);margin:0}.price{font-weight:850;font-size:18px;margin-top:3px}.gift button,.button{border:0;border-radius:11px;padding:11px 13px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.gift button{background:var(--accent);color:white;margin-top:auto}.gift button.reserved{background:#e6f6ed;color:var(--good)}.notice{margin:22px 0 0;background:white;border:1px solid var(--line);border-radius:15px;padding:15px 17px;color:var(--muted);font-size:13px;line-height:1.6}.empty{grid-column:1/-1;text-align:center;padding:35px;color:var(--muted)}footer{border-top:1px solid var(--line);padding:22px 20px;color:var(--muted);font-size:12px;line-height:1.7}.reset{background:white;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-weight:750;cursor:pointer}.toast{position:fixed;bottom:16px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#23213a;color:white;padding:12px 16px;border-radius:12px;transition:.2s;max-width:calc(100vw - 24px);font-size:13px}.toast.show{opacity:1;transform:translate(-50%,0)}:focus-visible{outline:3px solid #ffbf47;outline-offset:3px}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+:root{--ink:#27233b;--muted:#777389;--paper:#fbf8f4;--white:#fff;--purple:#7458df;--purple-dark:#5d43c7;--peach:#f8d9c9;--mint:#dcefe5;--line:#ece7e1;--shadow:0 18px 55px #34254b0d;--radius:22px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit}.demo{background:#27233b;color:#fff;text-align:center;padding:8px 14px;font-size:12px;letter-spacing:.025em}.demo strong{color:#f9d6c3}.wrap{width:min(1160px,calc(100% - 40px));margin:auto}.nav{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 0}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-size:25px;font-weight:850;letter-spacing:-1.2px}.brand-mark{display:grid;place-items:center;width:39px;height:39px;background:var(--purple);color:#fff;border-radius:14px;font-size:21px;box-shadow:0 6px 14px #7458df33}.navlinks{display:flex;align-items:center;gap:27px;color:#5e596f;font-size:14px}.navlinks a{text-decoration:none}.navlinks a:hover{color:var(--purple)}.nav-actions{display:flex;gap:10px;align-items:center}.btn{border:0;border-radius:999px;padding:11px 18px;font-weight:750;transition:transform .15s,background .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}.btn:hover{transform:translateY(-1px)}.primary{background:var(--purple);color:white;box-shadow:0 7px 16px #7458df2b}.primary:hover{background:var(--purple-dark)}.soft{background:#f0ebff;color:#5c45c3}.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}.small{font-size:13px;padding:8px 13px}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;padding:53px 0 67px}.eyebrow{display:inline-flex;align-items:center;gap:8px;background:#efeaff;color:#5e47c7;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.eyebrow span{width:7px;height:7px;background:#8b72ef;border-radius:50%}h1{font-size:clamp(42px,5.5vw,68px);line-height:1.03;letter-spacing:-3.5px;margin:20px 0 18px;font-weight:850;max-width:620px}h1 em{font-style:normal;color:var(--purple)}.hero-copy{font-size:17px;line-height:1.75;color:var(--muted);max-width:520px}.hero-buttons{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}.proof{display:flex;align-items:center;gap:11px;margin-top:27px;color:var(--muted);font-size:12px}.avatars{display:flex}.avatar{width:30px;height:30px;border:2px solid var(--paper);border-radius:50%;display:grid;place-items:center;margin-left:-7px;font-size:13px;background:#f4d4c4}.avatar:first-child{margin-left:0;background:#dcefe5}.avatar:nth-child(3){background:#e5dcff}.hero-art{position:relative;min-height:420px;display:grid;place-items:center}.blob{position:absolute;width:340px;height:340px;background:#f7e2d6;border-radius:44% 56% 53% 47%/45% 43% 57% 55%;transform:rotate(-8deg)}.float-card{position:absolute;background:#fff;border:1px solid #f0e9e2;border-radius:19px;box-shadow:var(--shadow);padding:15px 17px}.card-main{position:relative;width:min(345px,90%);padding:20px;background:#fff;border-radius:25px;box-shadow:0 25px 70px #4a335015;transform:rotate(2deg)}.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.mini-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#938ba5;font-weight:800}.card-title{font-weight:850;font-size:21px;letter-spacing:-.6px}.cover{height:137px;border-radius:17px;background:linear-gradient(135deg,#e4dbff,#f7d8ca 75%);display:grid;place-items:center;font-size:60px;position:relative;overflow:hidden}.cover:before,.cover:after{content:"";position:absolute;border:1px solid #fff9;border-radius:50%;width:180px;height:180px}.cover:after{width:125px;height:125px}.gift-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #f2eef0}.gift-emoji{width:44px;height:44px;border-radius:13px;background:#f6f0e9;display:grid;place-items:center;font-size:24px}.gift-name{font-size:13px;font-weight:800}.gift-sub{font-size:11px;color:var(--muted)}.gift-price{margin-left:auto;font-weight:800;font-size:13px}.float-one{top:39px;right:0;transform:rotate(6deg);font-size:13px}.float-two{bottom:26px;left:0;transform:rotate(-5deg);display:flex;align-items:center;gap:10px}.float-icon{width:37px;height:37px;display:grid;place-items:center;border-radius:12px;background:#e0f0e6;font-size:19px}.float-title{font-weight:800;font-size:13px}.float-sub{font-size:11px;color:var(--muted)}.section{padding:62px 0}.section-white{background:#fff}.section-head{display:flex;justify-content:space-between;align-items:end;gap:25px;margin-bottom:25px}.section h2{font-size:clamp(28px,3.4vw,40px);line-height:1.1;letter-spacing:-1.7px;margin:10px 0 9px}.section-head p,.muted{color:var(--muted)}.section-head p{margin:0;max-width:540px}.section-kicker{font-size:12px;color:var(--purple);font-weight:850;text-transform:uppercase;letter-spacing:.09em}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:22px 0}.search{flex:1;min-width:220px;position:relative}.search input{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 15px 12px 42px;background:white;outline:none}.search input:focus,.field input:focus,.field textarea:focus,.field select:focus{border-color:#a898f1;box-shadow:0 0 0 3px #7458df14}.search span{position:absolute;left:15px;top:10px;font-size:18px;color:#908aa0}.filter{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid var(--line);border-radius:999px;background:#fff;color:#686276;padding:9px 14px;font-size:12px;font-weight:750}.chip.active,.chip:hover{background:#eee9ff;color:#5e46c8;border-color:#eee9ff}.list-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:19px}.list-card{background:#fff;border:1px solid #eee8e2;border-radius:20px;padding:13px;transition:transform .2s,box-shadow .2s}.list-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}.product-art{height:190px;border-radius:15px;display:grid;place-items:center;font-size:65px;position:relative;overflow:hidden}.product-art:before{content:"";position:absolute;width:160px;height:160px;border:1px solid #ffffff8c;border-radius:50%}.product-art span{position:relative;filter:drop-shadow(0 9px 10px #0000000d)}.tag{position:absolute;top:12px;left:12px;background:#fffdf4;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:850;color:#70654e}.list-card h3{font-size:16px;letter-spacing:-.3px;margin:14px 3px 3px}.product-desc{font-size:12px;color:var(--muted);margin:0 3px 13px;min-height:19px}.product-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 3px 3px}.price{font-size:17px;font-weight:850}.reserve-btn{border:1px solid #e9e2f8;background:#f3efff;color:#624bc7;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800}.reserve-btn.reserved{background:#e2f2e8;color:#326f4d;border-color:#d7eadf}.empty{grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)}.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}.feature{padding:25px;border:1px solid var(--line);border-radius:20px;background:#fff}.feature-icon{width:45px;height:45px;border-radius:15px;background:#eee9ff;display:grid;place-items:center;font-size:22px}.feature:nth-child(2) .feature-icon{background:#e3f2e9}.feature:nth-child(3) .feature-icon{background:#fbe7dc}.feature h3{font-size:16px;margin:16px 0 7px}.feature p{color:var(--muted);font-size:13px;margin:0}.cta{padding:40px;background:#e9e3ff;border-radius:28px;display:flex;align-items:center;justify-content:space-between;gap:22px;overflow:hidden;position:relative}.cta:after{content:"✳";position:absolute;right:220px;top:-60px;font-size:200px;color:#ffffff65;pointer-events:none}.cta h2{font-size:clamp(27px,3.5vw,39px);letter-spacing:-1.5px;margin:0 0 8px;max-width:530px}.cta p{color:#6f6688;margin:0}.footer{padding:35px 0 45px;display:flex;align-items:center;justify-content:space-between;gap:20px;color:var(--muted);font-size:12px}.footer .brand{color:var(--ink);font-size:20px}.footer .brand-mark{width:32px;height:32px;border-radius:11px;font-size:17px}.notice{position:fixed;bottom:20px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#29253d;color:#fff;padding:13px 18px;border-radius:14px;box-shadow:var(--shadow);font-size:13px;z-index:20;transition:.25s;max-width:calc(100% - 30px)}.notice.show{opacity:1;transform:translate(-50%,0)}dialog{border:0;padding:0;border-radius:24px;width:min(520px,calc(100% - 28px));box-shadow:0 25px 90px #211a3c35;color:var(--ink)}dialog::backdrop{background:#201b33a8;backdrop-filter:blur(4px)}.modal{padding:25px}.modal-head{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:20px}.modal h2{font-size:25px;letter-spacing:-1px;margin:0}.modal p{color:var(--muted);font-size:13px;margin:5px 0}.close{border:0;background:#f4f0f8;border-radius:50%;width:34px;height:34px;font-size:20px}.field{display:grid;gap:6px;margin:13px 0}.field label{font-size:12px;font-weight:800}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;outline:none}.field textarea{min-height:80px;resize:vertical}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.demo-note{font-size:11px;color:#8a8497;background:#f7f4fb;border-radius:11px;padding:10px 12px;margin:15px 0}.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:850px){.navlinks{display:none}.hero{grid-template-columns:1fr;gap:10px;padding-top:35px}.hero-copy{max-width:650px}.hero-art{min-height:410px}.list-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section-head{align-items:start;flex-direction:column}.cta{align-items:start;flex-direction:column}.cta:after{right:-10px}.features{grid-template-columns:1fr}.feature{display:flex;gap:15px}.feature-icon{flex-shrink:0}.feature h3{margin-top:0}.feature p{margin-top:5px}}
+@media(max-width:520px){.wrap{width:min(100% - 28px,1160px)}.nav{padding:14px 0}.brand{font-size:22px}.nav-actions .ghost{display:none}.nav-actions .btn{padding:10px 13px;font-size:12px}.hero{padding:28px 0 42px}h1{font-size:45px;letter-spacing:-2.4px}.hero-copy{font-size:15px}.hero-art{min-height:360px}.blob{width:270px;height:270px}.card-main{width:285px;padding:15px}.cover{height:112px;font-size:49px}.float-one{right:-2px;top:12px}.float-two{bottom:8px;left:-4px}.section{padding:45px 0}.list-grid{gap:10px}.product-art{height:130px;font-size:49px}.list-card{padding:8px;border-radius:16px}.list-card h3{font-size:13px;margin-top:10px}.product-desc{font-size:11px;min-height:32px}.product-bottom{align-items:start;flex-direction:column}.price{font-size:15px}.reserve-btn{width:100%}.toolbar{align-items:stretch}.search{min-width:100%}.filter{gap:6px}.chip{padding:8px 10px}.cta{padding:25px}.footer{align-items:start;flex-direction:column}.field-row{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
 <body>
-<div class="demo-banner">MODE DÉMONSTRATION · TOUTES LES PERSONNES ET DONNÉES SONT FICTIVES</div>
-<header class="hero"><div class="wrap">
-<div class="brand" aria-label="Wishly">wishly<span aria-hidden="true">.</span></div>
-<div class="eyebrow">EXEMPLE DE LISTE PARTAGÉE</div>
-<h1>Les petites idées,<br>les grands sourires.</h1>
-<p>Voici une maquette interactive de liste de cadeaux. Parcours les idées et essaie une réservation : tout fonctionne localement dans cette page de démonstration.</p>
-<div class="hero-note">Liste fictive créée par Camille Martin · Occasion : fête imaginaire</div>
-</div></header>
-<main class="main wrap">
-<div class="toolbar" role="search">
-<label for="search" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Rechercher un cadeau</label>
-<input id="search" type="search" placeholder="Rechercher un cadeau…" autocomplete="off">
-<label for="category" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Filtrer par catégorie</label>
-<select id="category"><option value="">Toutes les catégories</option><option>Lecture</option><option>Loisirs</option><option>Maison</option><option>Créativité</option></select>
-<button class="reset" id="reset" type="button">Réinitialiser la démo</button>
+<div class="demo"><strong>MODE DÉMO</strong> · Wishly est un exemple fictif : aucune vraie réservation ni aucun paiement.</div>
+<header class="wrap">
+<nav class="nav" aria-label="Navigation principale">
+<a class="brand" href="#" aria-label="Wishly, accueil"><span class="brand-mark">w</span> wishly<span style="color:var(--purple)">.</span></a>
+<div class="navlinks"><a href="#idees">Explorer les idées</a><a href="#fonctionnement">Comment ça marche</a><a href="#demo">La démo</a></div>
+<div class="nav-actions"><button class="btn ghost small" id="loginBtn">Se connecter</button><button class="btn primary" id="createBtn">＋ Créer une liste</button></div>
+</nav>
+</header>
+<main>
+<section class="wrap hero">
+<div>
+<div class="eyebrow"><span></span> De petites envies, de grands sourires</div>
+<h1>Les envies prennent <em>vie.</em></h1>
+<p class="hero-copy">La liste de cadeaux qui rassemble toutes vos idées au même endroit. Préparez une occasion, partagez vos envies et laissez vos proches choisir comment vous faire plaisir.</p>
+<div class="hero-buttons"><button class="btn primary" id="heroCreate">Créer ma liste <span aria-hidden="true">↗</span></button><a class="btn ghost" href="#idees">Découvrir la démo ↓</a></div>
+<div class="proof"><div class="avatars"><span class="avatar">✿</span><span class="avatar">☀</span><span class="avatar">✦</span></div><span>Des idées pour chaque occasion, toute l'année.</span></div>
 </div>
-<div class="stats" aria-live="polite">
-<div class="stat"><strong id="total">6</strong><span>idées fictives</span></div>
-<div class="stat"><strong id="available">6</strong><span>disponibles</span></div>
-<div class="stat"><strong id="reserved">0</strong><span>réservées sur cet appareil</span></div>
+<div class="hero-art" aria-label="Illustration d'une liste de cadeaux">
+<div class="blob"></div>
+<div class="float-card float-one">✦ <strong>Une envie partagée</strong></div>
+<div class="card-main">
+<div class="card-head"><div><div class="mini-label">Une liste exemple</div><div class="card-title">Les petites envies de Léa</div></div><span style="background:#eee9ff;border-radius:50%;width:34px;height:34px;display:grid;place-items:center">♡</span></div>
+<div class="cover" aria-hidden="true">🎁</div>
+<div class="gift-row"><div class="gift-emoji">📚</div><div><div class="gift-name">Un roman à découvrir</div><div class="gift-sub">Culture · Exemple fictif</div></div><div class="gift-price">18 €</div></div>
+<div class="gift-row" style="border:0"><div class="gift-emoji" style="background:#e3f2e9">🎨</div><div><div class="gift-name">Un kit créatif</div><div class="gift-sub">Loisirs · Exemple fictif</div></div><div class="gift-price">26 €</div></div>
 </div>
-<section id="giftGrid" class="grid" aria-label="Cadeaux de démonstration"></section>
-<div class="notice"><strong>À propos de cette démo</strong><br>Les noms, descriptions, prix et idées ci-dessous sont inventés. Les réservations sont enregistrées uniquement dans le stockage local de ce navigateur. Aucun compte, paiement, message, serveur ou base de données n’est utilisé.</div>
+<div class="float-card float-two"><span class="float-icon">✓</span><div><div class="float-title">Simple à partager</div><div class="float-sub">Une seule liste, plein d'idées</div></div></div>
+</div>
+</section>
+<section class="section section-white" id="idees">
+<div class="wrap">
+<div class="section-head"><div><div class="section-kicker">Le catalogue d'exemple</div><h2>Une envie en tête ?</h2><p>Parcourez quelques idées fictives. Les réservations sont simulées uniquement dans ce navigateur.</p></div><button class="btn soft" id="addGiftBtn">＋ Ajouter une idée</button></div>
+<div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Rechercher une idée…" aria-label="Rechercher un cadeau"></label><div class="filter" id="filters"><button class="chip active" data-category="Tous">Tout voir</button><button class="chip" data-category="Culture">Culture</button><button class="chip" data-category="Créativité">Créativité</button><button class="chip" data-category="Maison">Maison</button><button class="chip" data-category="Jeux">Jeux</button></div></div>
+<div class="list-grid" id="giftGrid" aria-live="polite"></div>
+</div>
+</section>
+<section class="section" id="fonctionnement">
+<div class="wrap">
+<div class="section-head"><div><div class="section-kicker">Pensé pour chaque occasion</div><h2>À votre façon, tout simplement.</h2><p>Wishly imagine une expérience personnalisable, du choix du modèle jusqu'aux actions autorisées sur chaque liste.</p></div></div>
+<div class="features">
+<article class="feature"><div class="feature-icon">✦</div><div><h3>Une liste qui vous ressemble</h3><p>Modèles par occasion, couleurs, couverture et sections déplaçables : les options présentées ici illustrent une future expérience.</p></div></article>
+<article class="feature"><div class="feature-icon">♡</div><div><h3>Des envies faciles à réunir</h3><p>Ajout manuel, lien produit ou catalogue : les méthodes sont présentées à titre de concept, sans extraction réelle depuis les boutiques.</p></div></article>
+<article class="feature"><div class="feature-icon">☼</div><div><h3>Des règles au choix</h3><p>Réservations, commentaires, suggestions et suivi des contributions pourraient être configurés liste par liste. Aucun paiement n'est effectué ici.</p></div></article>
+</div>
+</div>
+</section>
+<section class="wrap section" id="demo">
+<div class="cta"><div><div class="section-kicker">À vous d'imaginer</div><h2>Votre prochaine occasion commence ici.</h2><p>Créez une liste fictive et testez l'interface en toute tranquillité.</p></div><button class="btn primary" id="ctaCreate">Essayer la démo ↗</button></div>
+</section>
 </main>
-<footer><div class="wrap">Wishly · maquette de démonstration fictive · Aucun lien d’achat réel n’est fourni.<br>Cette page est un exemple pédagogique et ne doit pas être présentée comme un service de réservation en production.</div></footer>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<footer class="wrap footer"><a class="brand" href="#"><span class="brand-mark">w</span> wishly<span style="color:var(--purple)">.</span></a><div>Une démo indépendante · Noms, prix et cadeaux entièrement fictifs.</div><a href="#demo">Retour en haut ↑</a></footer>
+<div class="notice" id="notice" role="status" aria-live="polite"></div>
+<dialog id="createDialog"><form class="modal" id="createForm"><div class="modal-head"><div><h2>Créer une liste exemple</h2><p>Les données restent dans cette démo.</p></div><button class="close" type="button" data-close aria-label="Fermer">×</button></div>
+<div class="field"><label for="listName">Nom de la liste</label><input id="listName" required maxlength="70" placeholder="Ex. Les envies de Camille"></div>
+<div class="field-row"><div class="field"><label for="listOccasion">Occasion</label><select id="listOccasion"><option>Anniversaire</option><option>Noël</option><option>Mariage</option><option>Naissance</option><option>Diplôme</option><option>Emménagement</option><option>Autre occasion</option></select></div><div class="field"><label for="listTheme">Ambiance</label><select id="listTheme"><option>Pastel doux</option><option>Moderne sombre</option><option>Coloré et ludique</option><option>Minimaliste chic</option></select></div></div>
+<div class="demo-note">Mode démo : cette liste n'est pas publiée sur Internet, aucun compte n'est créé et rien n'est envoyé à un serveur.</div><div class="modal-actions"><button class="btn ghost" type="button" data-close>Annuler</button><button class="btn primary" type="submit">Créer l'exemple</button></div></form></dialog>
+<dialog id="giftDialog"><form class="modal" id="giftForm"><div class="modal-head"><div><h2>Ajouter une idée fictive</h2><p>Ajoutez un exemple à la grille ci-dessus.</p></div><button class="close" type="button" data-close aria-label="Fermer">×</button></div>
+<div class="field"><label for="giftName">Nom du cadeau</label><input id="giftName" required maxlength="70" placeholder="Ex. Carnet illustré"></div>
+<div class="field-row"><div class="field"><label for="giftPrice">Prix indicatif (€)</label><input id="giftPrice" type="number" min="0" max="9999" step=".01" required placeholder="15"></div><div class="field"><label for="giftCategory">Catégorie</label><select id="giftCategory"><option>Culture</option><option>Créativité</option><option>Maison</option><option>Jeux</option></select></div></div>
+<div class="field"><label for="giftDescription">Description (facultatif)</label><input id="giftDescription" maxlength="100" placeholder="Une petite description"></div>
+<div class="demo-note">Pas de photo importée ni de vrai lien marchand dans cette version.</div><div class="modal-actions"><button class="btn ghost" type="button" data-close>Annuler</button><button class="btn primary" type="submit">Ajouter à la démo</button></div></form></dialog>
+<dialog id="loginDialog"><form class="modal" method="dialog"><div class="modal-head"><div><h2>Connexion fictive</h2><p>La vraie authentification n'est pas encore implémentée.</p></div><button class="close" type="button" data-close aria-label="Fermer">×</button></div><div class="demo-note">Cette démo ne collecte ni adresse e-mail ni mot de passe. Les connexions e-mail, Google et lien magique sont des fonctionnalités envisagées, pas des services actifs.</div><div class="modal-actions"><button class="btn primary" type="button" data-close>Compris</button></div></form></dialog>
 <script>
-'use strict';
-const demoGifts = [
- {id:'gift-101',title:'Carnet des idées',category:'Créativité',description:'Un carnet imaginaire pour dessiner, écrire et noter des projets.',price:'12 €',emoji:'📒'},
- {id:'gift-102',title:'Roman des étoiles',category:'Lecture',description:'Un roman fictif d’aventure dans une galaxie inventée.',price:'18 €',emoji:'📚'},
- {id:'gift-103',title:'Kit de peinture pastel',category:'Créativité',description:'Un assortiment fictif pour tester des palettes de couleurs.',price:'24 €',emoji:'🎨'},
- {id:'gift-104',title:'Puzzle des montagnes',category:'Loisirs',description:'Un puzzle imaginaire représentant un paysage de montagne.',price:'20 €',emoji:'🧩'},
- {id:'gift-105',title:'Tasse constellation',category:'Maison',description:'Une tasse de démonstration décorée de constellations dessinées.',price:'14 €',emoji:'☕'},
- {id:'gift-106',title:'Jeu coopératif des lucioles',category:'Loisirs',description:'Un jeu de société fictif où les joueurs illuminent une forêt.',price:'30 €',emoji:'✨'}
+const initialGifts=[
+{id:1,name:"Un roman à découvrir",description:"Une nouvelle histoire à dévorer",price:18,category:"Culture",emoji:"📚",bg:"#e7e0ff",reserved:false},
+{id:2,name:"Kit de peinture",description:"Pour laisser parler sa créativité",price:26,category:"Créativité",emoji:"🎨",bg:"#f8dfd1",reserved:false},
+{id:3,name:"Un joli mug",description:"Pour les pauses réconfortantes",price:14,category:"Maison",emoji:"☕",bg:"#dcefe5",reserved:false},
+{id:4,name:"Puzzle illustré",description:"Un moment calme à partager",price:22,category:"Jeux",emoji:"🧩",bg:"#f5e9b9",reserved:false},
+{id:5,name:"Carnet de notes",description:"Pour toutes les idées qui passent",price:9,category:"Créativité",emoji:"📒",bg:"#f6dce9",reserved:false},
+{id:6,name:"Jeu de société",description:"Des soirées pleines de surprises",price:32,category:"Jeux",emoji:"🎲",bg:"#dce8f8",reserved:false},
+{id:7,name:"Petit vase en céramique",description:"Une touche de douceur à la maison",price:24,category:"Maison",emoji:"🏺",bg:"#f6e0d1",reserved:false},
+{id:8,name:"Carte cadeau librairie",description:"Choisir sa prochaine lecture",price:20,category:"Culture",emoji:"🎟️",bg:"#e1e8d9",reserved:false},
+{id:9,name:"Set de crayons",description:"Des couleurs pour les projets du jour",price:12,category:"Créativité",emoji:"🖍️",bg:"#e6ddfa",reserved:false}
 ];
-const storageKey='wishly-demo-reservations-v1';
-const grid=document.getElementById('giftGrid');
-const search=document.getElementById('search');
-const category=document.getElementById('category');
-const toast=document.getElementById('toast');
-let reservations=loadReservations();
-function loadReservations(){try{const v=JSON.parse(localStorage.getItem(storageKey)||'[]');return Array.isArray(v)?v.filter(id=>demoGifts.some(g=>g.id===id)):[]}catch{return []}}
-function saveReservations(){try{localStorage.setItem(storageKey,JSON.stringify(reservations))}catch{}}
-function notify(message){toast.textContent=message;toast.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>toast.classList.remove('show'),2400)}
+let gifts=initialGifts.map(g=>({...g}));let activeCategory="Tous";let nextId=10;
+const grid=document.getElementById("giftGrid"),search=document.getElementById("searchInput"),notice=document.getElementById("notice");
+let noticeTimer;
+function toast(message){notice.textContent=message;notice.classList.add("show");clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>notice.classList.remove("show"),2900)}
+function euro(n){return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:2}).format(n)}
 function render(){
- const q=search.value.trim().toLocaleLowerCase('fr');
- const selected=category.value;
- const filtered=demoGifts.filter(g=>(!q||(g.title+' '+g.description+' '+g.category).toLocaleLowerCase('fr').includes(q))&&(!selected||g.category===selected));
- grid.replaceChildren();
- if(!filtered.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='Aucune idée ne correspond à la recherche.';grid.append(empty)}
- for(const gift of filtered){
-  const isReserved=reservations.includes(gift.id);
-  const article=document.createElement('article');article.className='gift';
-  const visual=document.createElement('div');visual.className='gift-visual';visual.setAttribute('aria-hidden','true');visual.textContent=gift.emoji;
-  const content=document.createElement('div');content.className='gift-content';
-  const cat=document.createElement('div');cat.className='category';cat.textContent=gift.category;
-  const title=document.createElement('h2');title.textContent=gift.title;
-  const desc=document.createElement('p');desc.textContent=gift.description;
-  const price=document.createElement('div');price.className='price';price.textContent=gift.price+' · prix fictif';
-  const button=document.createElement('button');button.type='button';button.className=isReserved?'reserved':'';
-  button.textContent=isReserved?'✓ Réservé dans cette démo':'Essayer une réservation';
-  button.setAttribute('aria-pressed',String(isReserved));
-  button.addEventListener('click',()=>{reservations=isReserved?reservations.filter(id=>id!==gift.id):[...reservations,gift.id];saveReservations();render();notify(isReserved?'Réservation de démonstration retirée.':'Réservation de démonstration enregistrée sur cet appareil.')});
-  content.append(cat,title,desc,price,button);article.append(visual,content);grid.append(article);
- }
- document.getElementById('total').textContent=demoGifts.length;
- document.getElementById('reserved').textContent=reservations.length;
- document.getElementById('available').textContent=demoGifts.length-reservations.length;
+ const q=search.value.trim().toLocaleLowerCase("fr");const shown=gifts.filter(g=>(activeCategory==="Tous"||g.category===activeCategory)&&(g.name+" "+g.description+" "+g.category).toLocaleLowerCase("fr").includes(q));
+ grid.innerHTML="";
+ if(!shown.length){grid.innerHTML='<div class="empty">Aucune idée ne correspond. Essayez un autre mot ou une autre catégorie.</div>';return}
+ for(const g of shown){const article=document.createElement("article");article.className="list-card";const art=document.createElement("div");art.className="product-art";art.style.background=g.bg;const emoji=document.createElement("span");emoji.textContent=g.emoji;art.append(emoji);const tag=document.createElement("span");tag.className="tag";tag.textContent=g.category;art.append(tag);const title=document.createElement("h3");title.textContent=g.name;const desc=document.createElement("p");desc.className="product-desc";desc.textContent=g.description||"Idée fictive de la démo";const bottom=document.createElement("div");bottom.className="product-bottom";const price=document.createElement("span");price.className="price";price.textContent=euro(g.price);const button=document.createElement("button");button.className="reserve-btn"+(g.reserved?" reserved":"");button.textContent=g.reserved?"✓ Réservé (démo)":"♡ Réserver";button.setAttribute("aria-pressed",String(g.reserved));button.addEventListener("click",()=>{g.reserved=!g.reserved;render();toast(g.reserved?"Réservation simulée : rien n'a été envoyé.":"Réservation fictive annulée.")});bottom.append(price,button);article.append(art,title,desc,bottom);grid.append(article)}
 }
-search.addEventListener('input',render);category.addEventListener('change',render);
-document.getElementById('reset').addEventListener('click',()=>{reservations=[];saveReservations();search.value='';category.value='';render();notify('Démo réinitialisée. Aucune donnée distante n’a été modifiée.')});
+document.getElementById("filters").addEventListener("click",e=>{const b=e.target.closest("button[data-category]");if(!b)return;activeCategory=b.dataset.category;document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x===b));render()});
+search.addEventListener("input",render);
+const createDialog=document.getElementById("createDialog"),giftDialog=document.getElementById("giftDialog"),loginDialog=document.getElementById("loginDialog");
+function open(dialog){if(typeof dialog.showModal==="function")dialog.showModal();else toast("Votre navigateur ne prend pas en charge cette fenêtre.")}
+["createBtn","heroCreate","ctaCreate"].forEach(id=>document.getElementById(id).addEventListener("click",()=>open(createDialog)));
+document.getElementById("addGiftBtn").addEventListener("click",()=>open(giftDialog));
+document.getElementById("loginBtn").addEventListener("click",()=>open(loginDialog));
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>b.closest("dialog").close()));
+document.querySelectorAll("dialog").forEach(d=>d.addEventListener("click",e=>{if(e.target===d)d.close()}));
+document.getElementById("createForm").addEventListener("submit",e=>{e.preventDefault();const name=document.getElementById("listName").value.trim();const occasion=document.getElementById("listOccasion").value;const theme=document.getElementById("listTheme").value;if(!name)return;createDialog.close();toast('Liste exemple « '+name+' » créée · '+occasion+' · '+theme+'.');document.getElementById("listName").value="";document.getElementById("demo").scrollIntoView({behavior:"smooth",block:"center"})});
+document.getElementById("giftForm").addEventListener("submit",e=>{e.preventDefault();const name=document.getElementById("giftName").value.trim();const price=Number(document.getElementById("giftPrice").value);if(!name||!Number.isFinite(price)||price<0)return;const category=document.getElementById("giftCategory").value;const emojiMap={Culture:"📚",Créativité:"🎨",Maison:"🏡",Jeux:"🎲"};const bgMap={Culture:"#e7e0ff",Créativité:"#f8dfd1",Maison:"#dcefe5",Jeux:"#f5e9b9"};gifts.unshift({id:nextId++,name,description:document.getElementById("giftDescription").value.trim(),price,category,emoji:emojiMap[category],bg:bgMap[category],reserved:false});activeCategory="Tous";document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x.dataset.category==="Tous"));search.value="";render();giftDialog.close();document.getElementById("giftForm").reset();toast("Idée ajoutée à cette démonstration. Elle n'est pas publiée.");document.getElementById("idees").scrollIntoView({behavior:"smooth"})});
 render();
 </script>
 </body>
