@@ -709,30 +709,21 @@ async function unreserveGift(id,currentName){
  if(!authorized||!accessCode){showToast("Accès requis.");return}
  const name=currentVisitorName();
  if(!name){showToast("Identité non disponible.");return}
- if(name.toLowerCase()!==currentName.toLowerCase()){showToast("Ce cadeau a été réservé par une autre personne.");return}
- if(!confirm("Déréserver ce cadeau ?"))return;
- const r=await privateRpc("cancel_private_reservation",{p_code:accessCode,p_gift_id:id,p_name:name});
- const result=await r.json().catch(()=>false);
- if(!r.ok){console.error("Supabase RPC DELETE",r.status,result);showToast("Déréservation impossible.");return}
- if(result!==true){showToast("Le prénom ne correspond pas à la réservation.");return}
+ if(name.toLowerCase()!==String(currentName||"").toLowerCase()){showToast("Ce cadeau a été réservé par une autre personne.");return}
+ if(!confirm("Déréserver ce cadeau de démonstration ?"))return;
  delete reservations[id];
- loadSeq++;
- render();
- showToast("Cadeau déréservé.");
- setTimeout(loadReservations,500);
+ localStorage.setItem("wishly_demo_reservations",JSON.stringify(reservations));
+ render();showToast("Réservation de démonstration annulée.");
 }
 async function reserveGift(id){
  if(!authorized||!accessCode){showToast("Accès requis.");return}
- const name=currentVisitorName();if(!name){showToast("Identité non disponible.");return}
- const r=await privateRpc("reserve_private_gift",{p_code:accessCode,p_gift_id:id,p_name:name});
- const result=await r.json().catch(()=>null);
- if(!r.ok){console.error("Supabase INSERT",r.status,result);showToast(result?.message||"Réservation impossible.");return}
- if(result!==true){showToast("Ce cadeau vient d’être réservé.");return}
- showToast("Réservation enregistrée pour tout le monde.");
- await loadReservations();
+ const name=currentVisitorName();
+ if(!name){showToast("Identité non disponible.");return}
+ if(reservations[id]){showToast("Ce cadeau est déjà réservé dans cette démonstration.");return}
+ reservations[id]=name;
+ localStorage.setItem("wishly_demo_reservations",JSON.stringify(reservations));
+ render();showToast("Réservation enregistrée dans ce navigateur (démo).");
 }
-
-
 
 function showHydraInvitationModal(){
   const mp=birthdayConfig?.murder_party||{},inv=mp.invitation||{};
