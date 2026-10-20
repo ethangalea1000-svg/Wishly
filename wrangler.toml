@@ -1,0 +1,17 @@
+name = "wishly-production"
+pages_build_output_dir = "./production"
+compatibility_date = "2026-10-20"
+
+[vars]
+APP_ORIGIN = "https://REPLACE-WITH-YOUR-PRODUCTION-DOMAIN"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "wishly-production-db"
+database_id = "REPLACE_WITH_NEW_PRODUCTION_D1_DATABASE_ID"
+migrations_dir = "worker/migrations"
+
+# This configuration is a template. Replace both placeholders before deployment.
+# Configure SESSION_PEPPER with: npx wrangler pages secret put SESSION_PEPPER --project-name wishly-production
+# Deploy Pages Functions from the repository root so /api/* stays same-origin.
+# Never point this binding at wishly-demo-db.
