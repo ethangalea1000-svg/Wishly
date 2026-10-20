@@ -259,6 +259,16 @@ async function handle(request: Request, env: Env): Promise<Response> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
+      if (!env.SESSION_PEPPER || env.SESSION_PEPPER.length < 32 ||
+          !env.APP_ORIGIN || env.APP_ORIGIN.includes("REPLACE")) {
+        return fail("Configuration serveur incomplète.", 503);
+      }
+      let configuredOrigin: URL;
+      try { configuredOrigin = new URL(env.APP_ORIGIN); }
+      catch { return fail("Configuration serveur invalide.", 503); }
+      if (configuredOrigin.origin !== env.APP_ORIGIN || configuredOrigin.protocol !== "https:") {
+        return fail("Configuration serveur invalide.", 503);
+      }
       return await handle(request, env);
     } catch {
       return fail("Erreur interne. Réessaie plus tard.", 500);
