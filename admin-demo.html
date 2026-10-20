@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#393b73">
+<title>Administration de démonstration — Wishly</title>
+<style>
+:root{color-scheme:light;--ink:#17192a;--muted:#62677a;--line:#e4e6ef;--accent:#5b5ce2;--bg:#f6f7fb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:34px 20px;background:linear-gradient(135deg,#17192a,#393b73);color:white}
+header,main{width:100%}.wrap{max-width:760px;margin:auto}main{padding:26px 18px}
+.brand{font-weight:900;letter-spacing:.1em;font-size:13px}.tag{display:inline-block;margin-top:16px;padding:5px 10px;border:1px solid #ffffff50;border-radius:99px;font-size:12px}
+h1{margin:12px 0 6px;font-size:clamp(27px,5vw,38px);line-height:1.15}p{color:var(--muted)}
+.card{background:white;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 12px 35px #20254a0c}
+label{display:block;font-weight:700;margin:18px 0 7px}input{width:100%;padding:13px 14px;border:1px solid #cfd3e2;border-radius:12px;font:inherit}
+button,.button{display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-top:14px;padding:12px 16px;border:0;border-radius:12px;background:var(--accent);color:white;font:inherit;font-weight:750;text-decoration:none;cursor:pointer}
+.status{min-height:24px;margin-top:12px;font-weight:650}.panel{margin-top:20px;padding:18px;border-radius:14px;background:#f1f2ff;border:1px solid #dedfff}.panel[hidden]{display:none}
+code{background:#eeeefe;padding:3px 7px;border-radius:6px}.actions{display:flex;gap:10px;flex-wrap:wrap}.secondary{background:white;color:var(--ink);border:1px solid var(--line)}
+small{color:var(--muted)}footer{text-align:center;padding:20px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div class="brand">✳ WISHLY</div><span class="tag">DÉMONSTRATION FICTIVE</span><h1>Administration de Camille</h1><div style="color:#e6e7ff">Espace de démonstration — aucune donnée réelle.</div></div></header>
+<main class="wrap">
+<section class="card" aria-labelledby="gateTitle">
+<h2 id="gateTitle">Accès administrateur</h2>
+<p>Entre le code public de démonstration. Il est volontairement visible et ne protège aucune donnée privée.</p>
+<p><strong>Code de démonstration :</strong> <code>CAMILLE-ADMIN</code></p>
+<form id="adminForm">
+<label for="adminCode">Code administrateur</label>
+<input id="adminCode" name="code" autocomplete="off" value="CAMILLE-ADMIN" required>
+<button id="submitBtn" type="submit">Vérifier avec Cloudflare D1</button>
+</form>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+<div id="panel" class="panel" hidden>
+<h2>Bienvenue dans l’administration de démonstration</h2>
+<p>Le code <code>CAMILLE-ADMIN</code> a été vérifié auprès de l’API Wishly et de la base D1.</p>
+<ul><li>Base : <code>wishly-demo-db</code></li><li>Mode : démonstration</li><li>Contenu : fictif uniquement</li></ul>
+<p>Cette page confirme la connexion technique. Les outils de modification de la liste seront ajoutés séparément.</p>
+</div>
+<div class="actions"><a class="button secondary" href="./liste-demo.html">Ouvrir la liste de Camille</a><a class="button secondary" href="./index.html">Accueil Wishly</a></div>
+</section>
+</main><footer>Wishly · Exemple public · N’utilise aucune donnée personnelle.</footer>
+<script>
+const API="https://wishly-api.ethan-galea1000.workers.dev/api/check-code";
+const form=document.getElementById("adminForm"),input=document.getElementById("adminCode"),status=document.getElementById("status"),panel=document.getElementById("panel"),button=document.getElementById("submitBtn");
+form.addEventListener("submit",async event=>{
+ event.preventDefault();panel.hidden=true;button.disabled=true;status.textContent="Vérification auprès de Cloudflare D1…";
+ try{
+  const response=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({page_id:"admin",code:input.value.trim()})});
+  const data=await response.json();
+  if(!response.ok||data.valid!==true){status.textContent="❌ Code incorrect. Utilise CAMILLE-ADMIN pour cette démo.";return}
+  status.textContent="✅ Code administrateur vérifié par Cloudflare D1.";panel.hidden=false;
+ }catch(error){console.error(error);status.textContent="❌ Impossible de joindre l’API Wishly. Vérifie que le Worker est déployé."}
+ finally{button.disabled=false}
+});
+form.requestSubmit();
+</script>
+</body></html>
