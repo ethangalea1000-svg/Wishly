@@ -10,6 +10,9 @@ Le site GitHub Pages actuel est une maquette. Ce répertoire et le dossier `work
 - E-mail, OAuth, paiement et affiliation : désactivés tant qu'un fournisseur n'est pas choisi et configuré.
 
 ## Contenu livré dans cette branche
+- `production/index.html` et `production/app.js` : interface responsive de départ pour l'inscription, la connexion, les listes et l'ajout de cadeaux.
+- `production/_headers` : en-têtes de sécurité HTTP de base.
+- `functions/api/[[path]].ts` : adaptateur Pages Functions pour exposer l'API sur la même origine.
 - `worker/src/index.ts` : API de départ (santé, inscription, connexion, déconnexion, session courante, listes et ajout d'articles).
 - `worker/migrations/0001_initial.sql` : schéma de base versionné.
 - `worker/wrangler.toml` : modèle de configuration.
