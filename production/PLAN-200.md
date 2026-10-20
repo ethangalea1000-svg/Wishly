@@ -9,7 +9,11 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 
 ## Phase 0 — fondations livrées dans cette branche
 - [x] Schéma D1 initial : comptes, sessions, listes, cadeaux, réservations, journal d'audit, limitation de débit.
-- [x] API de départ : inscription, connexion, déconnexion, session courante, CRUD limité de listes et ajout de cadeaux.
+- [x] API de départ : inscription, connexion, déconnexion, session courante, lecture/création de listes et ajout de cadeaux.
+- [x] Interface responsive initiale : inscription, connexion, création de listes et ajout d'idées cadeaux.
+- [x] API exposée via Pages Functions pour préserver l'origine des cookies.
+- [x] En-têtes HTTP de sécurité de base sur le frontend.
+- [x] Vérification TypeScript CI réussie sur la branche de travail.
 - [x] Hachage de mot de passe PBKDF2-SHA-256 côté Worker avec sel aléatoire.
 - [x] Sessions opaques en cookie HttpOnly/Secure/SameSite, jeton haché en base, expiration.
 - [x] Vérification d'origine pour les requêtes mutantes et limitation de débit initiale en D1.
