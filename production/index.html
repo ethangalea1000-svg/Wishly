@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Wishly — crée et organise tes listes de cadeaux.">
+  <meta name="theme-color" content="#f7f5ff">
+  <title>Wishly — Mes listes</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#24213a;background:#f7f5ff;font-synthesis:none;text-rendering:optimizeLegibility;--ink:#24213a;--muted:#69667c;--line:#e5e1f0;--surface:#fff;--accent:#6553c8;--accent-hover:#4e3caf;--danger:#a52e4a}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh}button,input,textarea,select{font:inherit}button{cursor:pointer}a{color:var(--accent)}:focus-visible{outline:3px solid #e7a7ff;outline-offset:3px}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem max(1rem,calc((100vw - 1080px)/2));background:#fff;border-bottom:1px solid var(--line)}
+    .brand{font-weight:850;letter-spacing:-.05em;font-size:1.45rem;color:var(--ink);text-decoration:none}.brand span{color:var(--accent)}.wrap{width:min(1080px,calc(100% - 2rem));margin:2.25rem auto 4rem}
+    h1{font-size:clamp(1.8rem,4vw,2.6rem);letter-spacing:-.04em;margin:.1rem 0 .5rem}h2{font-size:1.2rem;margin:0 0 1rem}p{line-height:1.6}.muted{color:var(--muted)}.panel{background:var(--surface);border:1px solid var(--line);border-radius:1.2rem;padding:clamp(1rem,3vw,1.6rem);box-shadow:0 12px 36px #31256b0a}
+    .layout{display:grid;grid-template-columns:minmax(250px,.8fr) minmax(0,1.2fr);gap:1rem;align-items:start}.stack{display:grid;gap:1rem}.field{display:grid;gap:.35rem;margin-bottom:.85rem}label{font-weight:650;font-size:.93rem}input,textarea,select{width:100%;border:1px solid #cfc9e1;border-radius:.7rem;padding:.75rem .8rem;background:#fff;color:var(--ink)}textarea{min-height:5rem;resize:vertical}
+    .btn{border:0;border-radius:.75rem;background:var(--accent);color:#fff;font-weight:700;padding:.75rem 1rem}.btn:hover{background:var(--accent-hover)}.btn.secondary{background:#efecfb;color:#342b68}.btn.secondary:hover{background:#e3def7}.btn.danger{background:#fff0f3;color:var(--danger)}.btn:disabled{opacity:.55;cursor:not-allowed}
+    .row{display:flex;gap:.65rem;align-items:center;flex-wrap:wrap}.row>*{min-width:0}.between{justify-content:space-between}.hidden{display:none!important}.notice{padding:.8rem 1rem;border-radius:.7rem;background:#f0edff;color:#342b68;margin:.8rem 0}.notice.error{background:#fff0f3;color:#8f203c}.list-buttons{display:grid;gap:.5rem}.list-choice{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:.8rem;padding:.85rem;color:var(--ink)}.list-choice[aria-current=true]{border-color:var(--accent);background:#f5f2ff}.list-choice strong{display:block}.gift{border:1px solid var(--line);border-radius:.8rem;padding:1rem;margin:.65rem 0}.gift h3{font-size:1rem;margin:0 0 .3rem;overflow-wrap:anywhere}.pill{display:inline-block;border-radius:2rem;background:#f0edff;padding:.2rem .55rem;font-size:.8rem;color:#40347e}.empty{padding:1.3rem;text-align:center;border:1px dashed #cfc9e1;border-radius:.8rem;color:var(--muted)}.footer{margin-top:2rem;text-align:center;font-size:.88rem;color:var(--muted)}
+    @media(max-width:720px){.layout{grid-template-columns:1fr}.top{padding:.9rem 1rem}.wrap{margin-top:1.3rem}.top .row{gap:.4rem}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./" aria-label="Wishly, accueil">wish<span>ly</span></a>
+    <div class="row">
+      <span id="accountLabel" class="muted" aria-live="polite"></span>
+      <button id="logoutBtn" class="btn secondary hidden" type="button">Déconnexion</button>
+    </div>
+  </header>
+  <main class="wrap">
+    <section id="authView" class="panel" aria-labelledby="pageTitle">
+      <p class="pill">Ton espace personnel</p>
+      <h1 id="pageTitle">Toutes tes envies, réunies.</h1>
+      <p class="muted">Crée tes listes et garde tes idées de cadeaux au même endroit.</p>
+      <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+      <div class="row" role="group" aria-label="Choisir une action">
+        <button id="showLogin" class="btn secondary" type="button" aria-pressed="true">Connexion</button>
+        <button id="showRegister" class="btn secondary" type="button" aria-pressed="false">Créer un compte</button>
+      </div>
+      <form id="authForm" class="stack" style="max-width:480px;margin-top:1rem" novalidate>
+        <div id="nameField" class="field hidden"><label for="displayName">Nom affiché</label><input id="displayName" name="displayName" maxlength="60" autocomplete="nickname"></div>
+        <div class="field"><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
+        <div class="field"><label for="password">Mot de passe</label><input id="password" name="password" type="password" minlength="12" maxlength="128" autocomplete="current-password" required><small class="muted">Utilise au moins 12 caractères.</small></div>
+        <button id="authSubmit" class="btn" type="submit">Se connecter</button>
+      </form>
+    </section>
+    <section id="appView" class="hidden" aria-labelledby="welcomeTitle">
+      <div class="row between" style="margin-bottom:1.2rem">
+        <div><p class="pill">Espace personnel</p><h1 id="welcomeTitle">Mes listes</h1><p class="muted">Tes listes privées restent accessibles uniquement à ton compte.</p></div>
+      </div>
+      <div id="appNotice" class="notice hidden" role="status" aria-live="polite"></div>
+      <div class="layout">
+        <aside class="panel">
+          <h2>Mes listes de cadeaux</h2>
+          <div id="lists" class="list-buttons"><div class="empty">Chargement des listes…</div></div>
+          <hr style="border:0;border-top:1px solid var(--line);margin:1.2rem 0">
+          <h2>Créer une liste</h2>
+          <form id="listForm">
+            <div class="field"><label for="listTitle">Titre de la liste</label><input id="listTitle" maxlength="100" required placeholder="Ex. Anniversaire"></div>
+            <div class="field"><label for="listDescription">Description (facultatif)</label><textarea id="listDescription" maxlength="2000" placeholder="Quelques détails…"></textarea></div>
+            <div class="field"><label for="visibility">Visibilité</label><select id="visibility"><option value="private">Privée</option><option value="unlisted">Partage par lien (à venir)</option><option value="public">Publique (à venir)</option></select><small class="muted">Pour le moment, l'accès aux listes reste réservé à ton compte.</small></div>
+            <button class="btn" type="submit">Créer la liste</button>
+          </form>
+        </aside>
+        <section class="panel" aria-labelledby="selectedTitle">
+          <div id="listDetail"><div class="empty"><h2 id="selectedTitle">Choisis une liste</h2>Crée une liste ou sélectionne-en une pour ajouter des idées.</div></div>
+        </section>
+      </div>
+    </section>
+    <p class="footer">Wishly — première version de travail. Les fonctions de partage invité, réservation et notifications ne sont pas encore activées.</p>
+  </main>
+  <script>
+  (() => {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const state = { mode: "login", user: null, lists: [], selected: null };
+    const notice = (id, message = "", error = false) => {
+      const node = $(id); node.textContent = message; node.classList.toggle("hidden", !message); node.classList.toggle("error", error);
+    };
+    const api = async (path, options = {}) => {
+      const response = await fetch("/api/" + path.replace(/^\//, ""), {
+        credentials: "same-origin",
+        ...options,
+        headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Une erreur est survenue. Réessaie.");
+      return payload;
+    };
+    const setMode = (mode) => {
+      state.mode = mode;
+      $("nameField").classList.toggle("hidden", mode !== "register");
+      $("password").autocomplete = mode === "register" ? "new-password" : "current-password";
+      $("password").minLength = mode === "register" ? 12 : 1;
+      $("authSubmit").textContent = mode === "register" ? "Créer mon compte" : "Se connecter";
+      $("showLogin").setAttribute("aria-pressed", String(mode === "login"));
+      $("showRegister").setAttribute("aria-pressed", String(mode === "register"));
+      notice("notice");
+    };
+    const escape = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+    const showApp = (user) => {
+      state.user = user;
+      $("authView").classList.add("hidden");
+      $("appView").classList.remove("hidden");
+      $("logoutBtn").classList.remove("hidden");
+      $("accountLabel").textContent = user.displayName || user.email;
+      $("welcomeTitle").textContent = "Bonjour " + (user.displayName || "et bienvenue");
+      loadLists();
+    };
+    const showAuth = () => {
+      state.user = null; state.lists = []; state.selected = null;
+      $("authView").classList.remove("hidden"); $("appView").classList.add("hidden");
+      $("logoutBtn").classList.add("hidden"); $("accountLabel").textContent = "";
+    };
+    async function loadLists() {
+      try {
+        const result = await api("lists");
+        state.lists = result.lists || [];
+        renderLists();
+        if (state.selected && state.lists.some(x => x.id === state.selected)) await openList(state.selected);
+        else if (state.lists.length) await openList(state.lists[0].id);
+        else {
+          state.selected = null;
+          $("listDetail").innerHTML = '<div class="empty"><h2>Aucune liste pour le moment</h2>Crée ta première liste avec le formulaire à gauche.</div>';
+        }
+      } catch (error) { notice("appNotice", error.message, true); }
+    }
+    function renderLists() {
+      const node = $("lists"); node.replaceChildren();
+      if (!state.lists.length) { node.innerHTML = '<div class="empty">Pas encore de liste.</div>'; return; }
+      state.lists.forEach(list => {
+        const button = document.createElement("button");
+        button.type = "button"; button.className = "list-choice";
+        button.setAttribute("aria-current", String(list.id === state.selected));
+        const title = document.createElement("strong"); title.textContent = list.title;
+        const desc = document.createElement("span"); desc.className = "muted"; desc.textContent = list.description || "Liste de cadeaux";
+        button.append(title, desc); button.addEventListener("click", () => openList(list.id));
+        node.append(button);
+      });
+    }
+    async function openList(id) {
+      state.selected = id; renderLists();
+      try {
+        const result = await api("lists/" + encodeURIComponent(id));
+        const list = result.list; const items = result.items || [];
+        const detail = $("listDetail"); detail.replaceChildren();
+        const heading = document.createElement("div"); heading.className = "row between";
+        const title = document.createElement("h2"); title.id = "selectedTitle"; title.textContent = list.title;
+        const badge = document.createElement("span"); badge.className = "pill"; badge.textContent = "Privée";
+        heading.append(title, badge); detail.append(heading);
+        if (list.description) { const p = document.createElement("p"); p.className = "muted"; p.textContent = list.description; detail.append(p); }
+        const itemTitle = document.createElement("h2"); itemTitle.textContent = "Idées de cadeaux"; itemTitle.style.marginTop = "1.4rem"; detail.append(itemTitle);
+        if (!items.length) { const empty = document.createElement("div"); empty.className = "empty"; empty.textContent = "Ajoute ta première idée ci-dessous."; detail.append(empty); }
+        items.forEach(item => {
+          const card = document.createElement("article"); card.className = "gift";
+          const h = document.createElement("h3"); h.textContent = item.title;
+          const p = document.createElement("p"); p.className = "muted"; p.textContent = item.description || "Aucune description";
+          card.append(h,p);
+          if (item.url) { const a = document.createElement("a"); a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Ouvrir le lien du cadeau"; card.append(a); }
+          const meta = document.createElement("p"); meta.className = "muted"; meta.textContent = "Quantité : " + item.quantity + " · Priorité : " + item.priority; card.append(meta);
+          detail.append(card);
+        });
+        const form = document.createElement("form"); form.id = "itemForm"; form.style.marginTop = "1.4rem";
+        form.innerHTML = '<h2>Ajouter une idée</h2><div class="field"><label for="itemTitle">Nom du cadeau</label><input id="itemTitle" maxlength="160" required></div><div class="field"><label for="itemUrl">Lien (facultatif)</label><input id="itemUrl" type="url" maxlength="2048" placeholder="https://…"></div><div class="field"><label for="itemDescription">Description (facultatif)</label><textarea id="itemDescription" maxlength="2000"></textarea></div><div class="row"><div class="field" style="flex:1"><label for="itemQuantity">Quantité</label><input id="itemQuantity" type="number" min="1" max="99" value="1" required></div><div class="field" style="flex:1"><label for="itemPriority">Priorité</label><select id="itemPriority"><option value="1">Basse</option><option value="2" selected>Normale</option><option value="3">Haute</option></select></div></div><button class="btn" type="submit">Ajouter le cadeau</button>';
+        form.addEventListener("submit", async event => {
+          event.preventDefault();
+          try {
+            await api("lists/" + encodeURIComponent(id) + "/items", { method:"POST", body:JSON.stringify({
+              title:$("itemTitle").value, url:$("itemUrl").value || null, description:$("itemDescription").value,
+              quantity:Number($("itemQuantity").value), priority:Number($("itemPriority").value)
+            })});
+            notice("appNotice", "Cadeau ajouté."); await openList(id);
+          } catch (error) { notice("appNotice", error.message, true); }
+        });
+        detail.append(form);
+      } catch (error) { notice("appNotice", error.message, true); }
+    }
+    $("showLogin").addEventListener("click", () => setMode("login"));
+    $("showRegister").addEventListener("click", () => setMode("register"));
+    $("authForm").addEventListener("submit", async event => {
+      event.preventDefault(); notice("notice");
+      const body = { email:$("email").value, password:$("password").value };
+      if (state.mode === "register") body.displayName = $("displayName").value;
+      try {
+        const result = await api("auth/" + (state.mode === "register" ? "register" : "login"), { method:"POST", body:JSON.stringify(body) });
+        showApp(result.user);
+      } catch (error) { notice("notice", error.message, true); }
+    });
+    $("listForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        const result = await api("lists", { method:"POST", body:JSON.stringify({ title:$("listTitle").value, description:$("listDescription").value, visibility:$("visibility").value }) });
+        $("listTitle").value = ""; $("listDescription").value = "";
+        state.selected = result.list.id; notice("appNotice", "Liste créée."); await loadLists();
+      } catch (error) { notice("appNotice", error.message, true); }
+    });
+    $("logoutBtn").addEventListener("click", async () => {
+      try { await api("auth/logout", { method:"POST", body:JSON.stringify({}) }); } finally { showAuth(); }
+    });
+    setMode("login");
+    api("auth/me").then(result => showApp(result.user)).catch(() => showAuth());
+  })();
+  </script>
+</body>
+</html>
