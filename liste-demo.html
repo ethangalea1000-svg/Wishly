@@ -256,7 +256,7 @@ img{content-visibility:auto}
 <body>
 <a class="skip-link" href="#mainContent">Aller directement au contenu</a>
 <header class="hero"><div class="wrap"><nav class="topnav"><a id="navCommunity" href="communaute.html">💬 Communauté</a><a id="navPrivacy" href="confidentialite.html">🔒 Confidentialité</a></nav><span class="tag" id="siteTag">🎁 Occasions fictives</span><h1 id="siteHeroTitle">La liste d’Camille</h1><p id="siteHeroDescription">Une liste simple : choisissez une envie, regardez son prix indicatif et marquez-la comme réservée pour éviter les doublons.</p><div class="actions"><button class="primary" id="shareBtn">Partager la liste</button><button class="secondary" id="resetBtn">Actualiser</button><button class="secondary" id="redoCodeBtn" type="button">🔄 Refaire le code</button></div></div></header>
-<main class="wrap locked" id="mainContent"><section id="accessGate" class="access-gate"><div class="access-card"><h2 id="accessTitle">🔐 Liste privée</h2><p id="accessText">Bienvenue sur la liste d’Camille. Entre ton code d’invitation pour afficher les cadeaux, participer aux animations et retrouver les informations de la journée. Le plus simple est d’utiliser directement le lien qui t’a été envoyé : il peut ouvrir automatiquement la bonne page.</p><form id="listAccessForm" class="access-form"><input id="listAccessCode" type="password" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="64" aria-label="Code d’invitation" placeholder="Code d’invitation *" required><button id="accessButton" type="submit">Accéder à la liste</button></form><div id="accessStatus" class="access-status" role="status" aria-live="polite" aria-atomic="true"></div><button type="button" id="changeCodeBtn" class="change-code" hidden>Changer de code</button><div id="accessNote" class="access-note">Le contenu des cadeaux n’est chargé qu’après vérification du code.</div><div class="access-request"><h3>📨 Demander un accès</h3><p>Tu n’as pas encore de code ? Présente-toi ici pour demander la création de ton accès.</p><form id="accessRequestForm" class="form-grid"><input id="accessRequestName" maxlength="50" required placeholder="Ton prénom / nom *"><select id="accessRequestRelation" required><option value="">Qui es-tu pour Camille ? *</option><option>Ami(e)</option><option>Famille</option><option>Camarade de classe</option><option>Connaissance</option><option>Autre</option></select><input id="accessRequestAvatar" maxlength="4" placeholder="Ton emoji (optionnel) — ex. 🎮"><textarea id="accessRequestBio" maxlength="250" placeholder="Un petit mot pour te présenter (optionnel)"></textarea><div class="form-actions"><button class="send" type="submit">Envoyer ma demande d’accès</button></div><div id="accessRequestStatus" class="access-request-status" role="status" aria-live="polite" aria-atomic="true"></div><div class="form-note">Camille verra ta demande dans le panneau administrateur. Aucun accès n’est créé automatiquement.</div></form></div></div></section>
+<main class="wrap locked" id="mainContent"><section id="accessGate" class="access-gate"><div class="access-card"><h2 id="accessTitle">🔐 Liste privée</h2><p id="accessText">Bienvenue sur la liste d’Camille. Entre ton code d’invitation pour afficher les cadeaux, participer aux animations et retrouver les informations de la journée. Le plus simple est d’utiliser directement le lien qui t’a été envoyé : il peut ouvrir automatiquement la bonne page.</p><p class="access-note"><strong>Code public de démonstration :</strong> <code>CAMILLE</code> — les données sont fictives.</p><form id="listAccessForm" class="access-form"><input id="listAccessCode" type="password" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="64" aria-label="Code d’invitation" placeholder="Code d’invitation *" required><button id="accessButton" type="submit">Accéder à la liste</button></form><div id="accessStatus" class="access-status" role="status" aria-live="polite" aria-atomic="true"></div><button type="button" id="changeCodeBtn" class="change-code" hidden>Changer de code</button><div id="accessNote" class="access-note">Le contenu des cadeaux n’est chargé qu’après vérification du code.</div><div class="access-request"><h3>📨 Demander un accès</h3><p>Tu n’as pas encore de code ? Présente-toi ici pour demander la création de ton accès.</p><form id="accessRequestForm" class="form-grid"><input id="accessRequestName" maxlength="50" required placeholder="Ton prénom / nom *"><select id="accessRequestRelation" required><option value="">Qui es-tu pour Camille ? *</option><option>Ami(e)</option><option>Famille</option><option>Camarade de classe</option><option>Connaissance</option><option>Autre</option></select><input id="accessRequestAvatar" maxlength="4" placeholder="Ton emoji (optionnel) — ex. 🎮"><textarea id="accessRequestBio" maxlength="250" placeholder="Un petit mot pour te présenter (optionnel)"></textarea><div class="form-actions"><button class="send" type="submit">Envoyer ma demande d’accès</button></div><div id="accessRequestStatus" class="access-request-status" role="status" aria-live="polite" aria-atomic="true"></div><div class="form-note">Camille verra ta demande dans le panneau administrateur. Aucun accès n’est créé automatiquement.</div></form></div></div></section>
 <section id="siteAnnouncementSection" class="birthday-card private-ui birthday-hidden" aria-live="polite" style="margin-top:16px">
   <h2 id="siteAnnouncementTitle" style="margin-top:0">Annonce</h2>
   <p id="siteAnnouncementMessage" style="margin-bottom:10px"></p>
@@ -690,47 +690,8 @@ function showToast(m){toast.textContent=m;toast.classList.add("show");setTimeout
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 async function loadGiftCatalog(){
   if(!authorized)return false;
-  try{
-    const r=await privateRpc("get_private_gifts",{p_code:accessCode});
-    const rows=await r.json().catch(()=>null);
-    if(!r.ok){
-      const detail=rows&&typeof rows==="object"
-        ? String(rows.message||rows.details||rows.hint||rows.error||"Erreur Supabase inconnue").trim()
-        : String(rows||"Erreur Supabase inconnue").trim();
-      console.error("private gifts",r.status,rows);
-      if(r.status===401||r.status===403){lockSite("Code invalide ou accès révoqué.");return false}
-      accessStatus.textContent="❌ get_private_gifts — HTTP "+r.status+(detail?": "+detail:"");
-      return false;
-    }
-    if(!Array.isArray(rows)){
-      console.error("private gifts: réponse inattendue",rows);
-      accessStatus.textContent="❌ get_private_gifts — réponse inattendue du serveur.";
-      return false;
-    }
-    if(!rows.length){
-      console.warn("private gifts: catalogue vide");
-      accessStatus.textContent="❌ get_private_gifts — aucun cadeau retourné.";
-      return false;
-    }
-    gifts=rows.map((x,index)=>{
-      if(!x||typeof x!=="object")throw new Error("Cadeau invalide à la position "+index+".");
-      return {id:x.id,cat:x.cat,title:x.title,price:x.price,desc:x.description,image:x.image||null,official_label:x.official_label||"",official_url:x.official_url||"",targetAmount:Number(x.target_amount||0),allowContributions:x.allow_contributions!==false,allowReservation:x.allow_reservation!==false,fundingNote:x.funding_note||"",contributedAmount:Number(x.contributed_amount||0),remainingAmount:Number(x.remaining_amount||0),contributionCount:Number(x.contribution_count||0),participantCount:Number(x.participant_count||0),myContributionCount:Number(x.my_contribution_count||0),myContributedAmount:Number(x.my_contributed_amount||0),reservedBy:x.reserved_by||""};
-    });
-    category.innerHTML='<option value="all">'+escapeHtml(siteConfig.search?.all_categories||"Toutes les catégories")+'</option>';
-    [...new Set(gifts.map(g=>g.cat))].sort().forEach(catName=>{const o=document.createElement("option");o.value=String(catName??"");o.textContent=String(catName??"");category.appendChild(o)});
-    try{
-      render();
-    }catch(err){
-      console.error("render gift catalog",err);
-      accessStatus.textContent="❌ Affichage de la liste impossible : "+String(err?.message||err||"erreur inconnue");
-      return false;
-    }
-    return true;
-  }catch(err){
-    console.error("loadGiftCatalog",err);
-    accessStatus.textContent="❌ Chargement de la liste impossible : "+String(err?.message||err||"erreur inconnue");
-    return false;
-  }
+  render();
+  return true;
 }
 async function loadReservations(){
  const seq=++loadSeq;
@@ -828,86 +789,40 @@ function showHydraInvitationModal(){
 }
 async function unlockSite(code,providedHydraToken=""){
   code=String(code||"").trim();
-  hydraToken=String(providedHydraToken||hydraToken||"").trim();
-  if(!code){accessStatus.textContent="Entre ton code d’invitation.";return false}
-  accessStatus.textContent="Vérification du code…";
-  let stage="autorisation";
+  if(!code){accessStatus.textContent="Entre le code de démonstration.";return false}
+  accessStatus.textContent="Vérification auprès de Cloudflare D1…";
+  const pageId="liste";
   try{
-    const r=await privateRpc("authorize_list_access",{p_code:code});
-    const data=await r.json().catch(()=>null);
-    if(!r.ok||!data||data.authorized!==true){
+    const response=await fetch("https://wishly-api.ethan-galea1000.workers.dev/api/check-code",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({page_id:pageId,code})
+    });
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||result.valid!==true){
       localStorage.removeItem("birthday_list_access");
-      accessGate.classList.remove("auto-login-pending");
-      if(data?.rate_limited){
-        const wait=Number(data.retry_after_seconds||0);
-        accessStatus.textContent=wait>0
-          ? "⏳ Trop de tentatives. Réessaie dans "+wait+" seconde"+(wait>1?"s":"")+"."
-          : "⏳ Trop de tentatives. Réessaie un peu plus tard.";
-      }else{
-        const detail=String(data?.message||data?.error||data?.hint||"").trim();
-        accessStatus.textContent=detail
-          ? "❌ Connexion refusée : "+detail
-          : "❌ Code invalide ou accès non autorisé.";
-      }
-      const change=document.getElementById("changeCodeBtn");
-      if(change)change.hidden=false;
-      accessInput.focus();
-      accessInput.select();
+      accessStatus.textContent="❌ Code incorrect. Pour cette démo, utilise CAMILLE.";
+      document.getElementById("changeCodeBtn").hidden=false;
       return false;
     }
-    accessCode=code;
-    accessLabel=data.label||"";
-    authorized=true;
-    stage="chargement de la liste";
-    const loaded=await loadGiftCatalog();
-    if(!loaded){
-      const diagnostic=accessStatus.textContent;
-      authorized=false;
-      accessCode="";
-      accessLabel="";
-      localStorage.removeItem("birthday_list_access");
-      mainContent.classList.add("locked");
-      accessGate.classList.remove("private-locked");
-      updateIdentityLabels();
-      accessGate.classList.remove("auto-login-pending");
-      accessStatus.textContent=diagnostic||"❌ La liste est momentanément indisponible.";
-      const change=document.getElementById("changeCodeBtn");
-      if(change)change.hidden=false;
-      return false;
-    }
-    localStorage.setItem("birthday_list_access",accessCode);
-    if(hydraToken)sessionStorage.setItem("birthday_hydra_token",hydraToken);else sessionStorage.removeItem("birthday_hydra_token");
-    if(history.replaceState){ history.replaceState(null,"",location.pathname); }
-    accessStatus.textContent=accessLabel?"✅ Accès autorisé pour "+accessLabel+".":"✅ Accès autorisé.";
+    accessCode=code;accessLabel="Visiteur démo";authorized=true;
+    gifts=[
+      {id:"demo-headphones",cat:"High-tech",title:"Casque audio",price:45,desc:"Pour écouter partout",image:null,official_label:"",official_url:"",targetAmount:0,contributedAmount:0,remainingAmount:0,allowContributions:false,allowReservation:true},
+      {id:"demo-book",cat:"Livres",title:"Roman fantastique",price:18,desc:"Une nouvelle aventure à découvrir",image:null,official_label:"",official_url:"",targetAmount:0,contributedAmount:0,remainingAmount:0,allowContributions:false,allowReservation:true},
+      {id:"demo-art",cat:"Loisirs créatifs",title:"Coffret créatif",price:24,desc:"Pour inventer et créer",image:null,official_label:"",official_url:"",targetAmount:0,contributedAmount:0,remainingAmount:0,allowContributions:false,allowReservation:true}
+    ];
+    reservations=JSON.parse(localStorage.getItem("wishly_demo_reservations")||"{}");
+    category.innerHTML='<option value="all">Toutes les catégories</option>';
+    [...new Set(gifts.map(g=>g.cat))].forEach(cat=>{const o=document.createElement("option");o.value=cat;o.textContent=cat;category.appendChild(o)});
+    render();
+    localStorage.setItem("birthday_list_access",code);
+    accessStatus.textContent="✅ Code de démonstration validé par Cloudflare D1.";
+    accessGate.classList.add("private-locked");mainContent.classList.remove("locked");
+    document.getElementById("changeCodeBtn").hidden=true;
     updateIdentityLabels();
-    accessGate.classList.add("private-locked");
-    mainContent.classList.remove("locked");
-    const change=document.getElementById("changeCodeBtn");
-    if(change)change.hidden=true;
-    await Promise.all([loadReservations(),loadFundraisers(),loadContributions(),loadIdeas(),loadMessages(),loadBirthdayFeatures()]);
-    // Après connexion, ouvre explicitement l’espace Anniversaire : le compte à rebours
-    // et les modules de fête ne restent plus cachés dans l’onglet Liste.
-    if(typeof window.__activateAppView==="function"){
-      window.__activateAppView("anniversaire",true);
-    }else{
-      document.querySelector('[data-view-target="anniversaire"]')?.click();
-    }
-    startPrivateRefresh();
-    // L'invitation est le premier écran après une identification réussie.
-    if(localStorage.getItem("guided-tour-v2")!=="1") window.__pendingGuidedTour=true;
-    showHydraInvitationModal();
     return true;
-  }catch(err){
-    console.error("unlockSite",stage,err);
-    localStorage.removeItem("birthday_list_access");
-    const detail=err&&err.name==="TypeError"&&String(err.message||"").toLowerCase().includes("fetch")
-      ? "Erreur réseau lors de "+stage+"."
-      : "Erreur pendant "+stage+".";
-    accessGate.classList.remove("auto-login-pending");
-    accessStatus.textContent="❌ "+detail+" Ouvre la console du navigateur si le problème persiste.";
-
-    const change=document.getElementById("changeCodeBtn");
-    if(change)change.hidden=false;
+  }catch(error){
+    console.error("Wishly D1 check failed",error);
+    accessStatus.textContent="❌ Impossible de joindre l’API Wishly. Réessaie dans un instant.";
     return false;
   }
 }
