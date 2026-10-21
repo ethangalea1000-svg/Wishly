@@ -531,9 +531,28 @@ export default {
           (configuredOrigin.protocol !== "https:" && !localHttp)) {
         return fail("Configuration serveur invalide.", 503);
       }
-      return await handle(request, env);
+      const response = await handle(request, env);
+      const origin = request.headers.get("Origin");
+      if (origin === env.APP_ORIGIN) {
+        const responseHeaders = new Headers(response.headers);
+        responseHeaders.set("Access-Control-Allow-Origin", env.APP_ORIGIN);
+        responseHeaders.set("Access-Control-Allow-Credentials", "true");
+        responseHeaders.set("Vary", "Origin");
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: responseHeaders
+        });
+      }
+      return response;
     } catch {
-      return fail("Erreur interne. Réessaie plus tard.", 500);
+      const origin = request.headers.get("Origin");
+      const corsHeaders: HeadersInit = origin === env.APP_ORIGIN ? {
+        "Access-Control-Allow-Origin": env.APP_ORIGIN,
+        "Access-Control-Allow-Credentials": "true",
+        "Vary": "Origin"
+      } : {};
+      return fail("Erreur interne. Réessaie plus tard.", 500, corsHeaders);
     }
   }
 };
