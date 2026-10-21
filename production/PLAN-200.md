@@ -134,7 +134,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [ ] 66 contributions invitées
 - [ ] 67 statistiques agrégées
 - [ ] 68 notifications
-- [ ] 69 détection d'URL en doublon
+- [x] 69 détection et contrainte SQL sur les URL en doublon
 - [ ] 70 échéances
 - [ ] 71 coédition
 - [ ] 72 brouillons
