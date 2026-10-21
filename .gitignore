@@ -1,0 +1,10 @@
+# Local secrets and Cloudflare state
+worker/.dev.vars
+.dev.vars
+.wrangler/
+worker/.wrangler/
+node_modules/
+worker/node_modules/
+.env
+.env.*
+!.env.example

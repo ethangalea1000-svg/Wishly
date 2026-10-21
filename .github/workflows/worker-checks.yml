@@ -1,0 +1,32 @@
+name: Worker checks
+on:
+  push:
+    branches: [main, production-foundation]
+    paths:
+      - "worker/**"
+      - ".github/workflows/worker-checks.yml"
+  pull_request:
+    paths:
+      - "worker/**"
+      - ".github/workflows/worker-checks.yml"
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test
+      - run: node --check ../production/app.js
+      - run: node --check ../production/shared.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python test/migration_check.py
+        working-directory: worker
