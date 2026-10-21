@@ -144,7 +144,7 @@
         const sortAndFilter=()=>{
           const query=itemFilter.value.trim().toLocaleLowerCase("fr");
           const cards=Array.from(itemContainer.children).filter(node=>node instanceof HTMLElement);
-          cards.forEach(card=>{card.hidden=!card.textContent.toLocaleLowerCase("fr").includes(query);});
+          cards.forEach(card=>{card.hidden=!(card.dataset.search||"").includes(query);});
           cards.sort((a,b)=>{
             if(itemSort.value==="priority")return Number(b.dataset.priority)-Number(a.dataset.priority);
             if(itemSort.value==="price")return Number(a.dataset.price)-Number(b.dataset.price);
@@ -155,7 +155,7 @@
         itemFilter.addEventListener("input",sortAndFilter);itemSort.addEventListener("change",sortAndFilter);
         if (!items.length) { const empty = document.createElement("div"); empty.className = "empty"; empty.textContent = "Ajoute ta première idée ci-dessous."; detail.append(empty); }
         items.forEach(item => {
-          const card = document.createElement("article"); card.className = "gift"; card.dataset.priority=String(item.priority||2); card.dataset.price=String(item.price_minor==null?999999999999:item.price_minor); card.dataset.created=String(item.created_at||"");
+          const card = document.createElement("article"); card.className = "gift"; card.dataset.priority=String(item.priority||2); card.dataset.price=String(item.price_minor==null?999999999999:item.price_minor); card.dataset.created=String(item.created_at||""); card.dataset.search=[item.title,item.description,item.category].filter(Boolean).join(" ").toLocaleLowerCase("fr");
           const h = document.createElement("h3"); h.textContent = item.title;
           const p = document.createElement("p"); p.className = "muted"; p.textContent = item.description || "Aucune description";
           card.append(h,p);
