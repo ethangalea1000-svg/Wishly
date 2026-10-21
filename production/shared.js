@@ -1,10 +1,11 @@
 (() => {
 "use strict";
-const token=location.pathname.split("/").filter(Boolean).pop()||"";
+const token=new URLSearchParams(location.search).get("token")||location.pathname.split("/").filter(Boolean).pop()||"";
 const $=id=>document.getElementById(id);
 const notice=(message,error=false)=>{$("notice").textContent=message;$("notice").classList.remove("hidden");$("notice").classList.toggle("error",error);};
 const escape=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-async function api(path,options={}){const r=await fetch("/api/"+path,{credentials:"same-origin",...options,headers:{...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})}});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||"Une erreur est survenue.");return data;}
+const API_BASE_URL="https://wishly-production-api.ethan-galea1000.workers.dev";
+async function api(path,options={}){const r=await fetch(API_BASE_URL+"/api/"+path,{...options,headers:{...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})}});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||"Une erreur est survenue.");return data;}
 async function load(){
  if(!/^[a-f0-9]{64}$/.test(token)){notice("Lien de partage invalide.",true);$("title").textContent="Liste indisponible";return;}
  try{
