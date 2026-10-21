@@ -12,9 +12,9 @@ This branch isolates the Cloudflare Worker from the GitHub Pages demo and binds 
 
 ## Before deployment
 
-The current API implementation uses an HttpOnly session cookie named `__Host-wishly_session` with `SameSite=Lax`. The frontend is on `github.io` and the API will be on `workers.dev`, which are different sites. Browser third-party-cookie restrictions can prevent this cookie from being sent, so account sessions are not yet reliably compatible with the GitHub Pages architecture.
+The API and frontend have been adapted for cross-origin calls: the Worker accepts a bearer session token in the `Authorization` header, CORS permits that header, and the static frontend stores the token in `sessionStorage` (cleared when the tab session ends or the user logs out). This avoids dependence on third-party cookies. A bearer token is still sensitive: never log it or expose it in URLs. Because JavaScript can read `sessionStorage`, prevent XSS and keep all output safely escaped.
 
-**Do not treat the API as production-ready until authentication is changed to a deliberate cross-origin strategy and the frontend is configured to call the API URL.** A custom API domain under a domain you control, or a reviewed bearer-token design, should be chosen before launch. Do not store session secrets or passwords in frontend code or Git.
+The frontend API base URL is currently set to `https://wishly-production-api.ethan-galea1000.workers.dev` in `production/app.js` and `production/shared.js`. Confirm that hostname after deployment; if Cloudflare assigns a different workers.dev hostname, update both files before publishing the frontend.
 
 ## Configuration
 
@@ -29,7 +29,7 @@ Set the secret interactively in Cloudflare/Wrangler; never commit its value:
 npx wrangler secret put SESSION_PEPPER --config wrangler.worker.toml
 ```
 
-Deploy only after the cross-origin session strategy and frontend API base URL have been implemented and tested:
+Before deployment, set a random secret of at least 32 characters. Deploy the isolated Worker, then verify the health endpoint, registration, login, logout, list creation, gift creation, sharing and guest reservations. Do not announce production readiness until these checks pass:
 
 ```sh
 npx wrangler deploy --config wrangler.worker.toml
