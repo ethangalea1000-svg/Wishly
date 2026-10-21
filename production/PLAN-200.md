@@ -116,21 +116,21 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [ ] 200 cycle de vie et effacement des données
 
 ## Phase 3 — listes et cadeaux (51–75, 101–125)
-- [ ] 51 accès invité
-- [ ] 52 annulation de réservation
-- [ ] 53 réservation masquée au propriétaire par défaut
+- [x] 51 accès invité par lien secret
+- [x] 52 annulation de réservation par code secret
+- [x] 53 nom de l'invité masqué au propriétaire dans l'API de partage
 - [ ] 54 option de révélation contrôlée
 - [ ] 55 contributions groupées
-- [ ] 56 priorité
-- [ ] 57 quantités
-- [ ] 58 archivage et duplication
-- [ ] 59 devises
-- [ ] 60 catégories
+- [x] 56 priorité
+- [x] 57 quantités
+- [x] 58 archivage et duplication
+- [x] 59 devises de liste et prix estimés
+- [x] 60 catégories
 - [ ] 61 tailles/options
-- [ ] 62 liens
-- [ ] 63 notes
+- [x] 62 liens HTTP(S) validés et normalisés
+- [x] 63 descriptions et notes de cadeaux
 - [ ] 64 tri/filtres
-- [ ] 65 statut acheté/réservé
+- [x] 65 statut de cadeau modifiable via API; intégration UI à compléter
 - [ ] 66 contributions invitées
 - [ ] 67 statistiques agrégées
 - [ ] 68 notifications
