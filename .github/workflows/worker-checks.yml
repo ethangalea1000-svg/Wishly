@@ -23,6 +23,8 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npm test
+      - run: node --check ../production/app.js
+      - run: node --check ../production/shared.js
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
