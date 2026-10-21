@@ -52,5 +52,5 @@ Pour les migrations distantes, vérifier deux fois la cible avant `npm run db:mi
 - Les contrôles d'origine ne remplacent pas un modèle CSRF complet pour tous les futurs flux.
 - Le rôle admin n'est pas attribuable via l'API publique. Ne jamais créer une route d'auto-promotion.
 - La réservation invité fonctionne dans le socle actuel, mais la double confirmation, les notifications et la gestion avancée de contributions restent à faire.
-- La suppression/export de compte, vérification d'e-mail, reset de mot de passe, MFA administrateur et interface admin ne sont pas implémentés.
+- L'export JSON et la suppression de compte avec confirmation sont implémentés, mais restent à tester en intégration. La vérification d'e-mail, la récupération de compte, le MFA administrateur et l'interface admin ne sont pas implémentés.
 - Les textes juridiques sont des brouillons avec champs à compléter; ils ne doivent pas être considérés comme validés.
