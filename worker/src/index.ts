@@ -254,6 +254,136 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ item: { id, wishlistId: listId, title, url: urlValue, description, category, priceMinor, quantity, priority, status: "wanted" } }, 201, headers);
   }
 
+
+  const listAction = url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})\\/(archive|duplicate)$/i);
+  if (listAction && listAction[2].toLowerCase() === "archive" && request.method === "POST") {
+    const listId = listAction[1];
+    const owned = await env.DB.prepare("SELECT id,archived_at FROM wishlists WHERE id=? AND owner_id=?")
+      .bind(listId, user.id).first<{id:string;archived_at:string|null}>();
+    if (!owned) return fail("Liste introuvable.", 404);
+    const archivedAt = owned.archived_at ? null : new Date().toISOString();
+    await env.DB.prepare("UPDATE wishlists SET archived_at=?,updated_at=? WHERE id=? AND owner_id=?")
+      .bind(archivedAt, new Date().toISOString(), listId, user.id).run();
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(), user.id, archivedAt ? "wishlist.archive" : "wishlist.restore", "wishlist", listId).run();
+    return json({ ok:true, archivedAt }, 200, headers);
+  }
+  if (listAction && listAction[2].toLowerCase() === "duplicate" && request.method === "POST") {
+    const listId = listAction[1];
+    const source = await env.DB.prepare("SELECT title,description,visibility,occasion,event_date,currency FROM wishlists WHERE id=? AND owner_id=?")
+      .bind(listId, user.id).first<{title:string;description:string;visibility:string;occasion:string|null;event_date:string|null;currency:string}>();
+    if (!source) return fail("Liste introuvable.", 404);
+    const newId = randomId();
+    const newTitle = (source.title + " (copie)").slice(0,100);
+    await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
+      .bind(newId, user.id, newTitle, source.description, "private", source.occasion, source.event_date, source.currency).run();
+    await env.DB.prepare("INSERT INTO wishlist_items(id,wishlist_id,title,url,image_url,description,category,price_minor,currency,quantity,priority,status) SELECT lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6))),?,title,url,image_url,description,category,price_minor,currency,quantity,priority,'wanted' FROM wishlist_items WHERE wishlist_id=?")
+      .bind(newId, listId).run();
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(), user.id, "wishlist.duplicate", "wishlist", newId).run();
+    return json({ list:{id:newId,title:newTitle,description:source.description,visibility:"private"} },201,headers);
+  }
+
+  const listResource = url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})$/i);
+  if (listResource && request.method === "PATCH") {
+    const listId = listResource[1];
+    const body = await bodyJson(request);
+    if (!body) return fail("Corps JSON invalide.");
+    const owned = await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
+    if (!owned) return fail("Liste introuvable.",404);
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    if ("title" in body) {
+      const title=cleanText(body.title,100);
+      if(!title || /[<>]/.test(title)) return fail("Titre invalide.");
+      fields.push("title=?"); values.push(title);
+    }
+    if ("description" in body) {
+      if(typeof body.description!=="string" || body.description.length>2000) return fail("Description invalide.");
+      fields.push("description=?"); values.push(body.description.trim());
+    }
+    if ("visibility" in body) {
+      if(!["private","unlisted","public"].includes(String(body.visibility))) return fail("Visibilité invalide.");
+      fields.push("visibility=?"); values.push(body.visibility);
+    }
+    if ("occasion" in body) {
+      if(body.occasion!==null && (typeof body.occasion!=="string" || body.occasion.length>80)) return fail("Occasion invalide.");
+      fields.push("occasion=?"); values.push(body.occasion);
+    }
+    if ("eventDate" in body) {
+      if(body.eventDate!==null && (typeof body.eventDate!=="string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(body.eventDate) || Number.isNaN(Date.parse(body.eventDate)))) return fail("Date invalide.");
+      fields.push("event_date=?"); values.push(body.eventDate);
+    }
+    if ("currency" in body) {
+      if(typeof body.currency!=="string" || !/^[A-Z]{3}$/.test(body.currency)) return fail("Devise invalide.");
+      fields.push("currency=?"); values.push(body.currency);
+    }
+    if (!fields.length) return fail("Aucune modification fournie.");
+    fields.push("updated_at=?"); values.push(new Date().toISOString());
+    values.push(listId,user.id);
+    await env.DB.prepare("UPDATE wishlists SET "+fields.join(",")+" WHERE id=? AND owner_id=?").bind(...values).run();
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(),user.id,"wishlist.update","wishlist",listId).run();
+    const list=await env.DB.prepare("SELECT id,title,description,visibility,occasion,event_date,currency,archived_at,created_at,updated_at FROM wishlists WHERE id=? AND owner_id=?")
+      .bind(listId,user.id).first();
+    return json({list},200,headers);
+  }
+  if (listResource && request.method === "DELETE") {
+    const result=await env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=?").bind(listResource[1],user.id).run();
+    if(!result.meta.changes) return fail("Liste introuvable.",404);
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(),user.id,"wishlist.delete","wishlist",listResource[1]).run();
+    return json({ok:true},200,headers);
+  }
+
+  const itemResource=url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})\\/items\\/([0-9a-f-]{36})$/i);
+  if(itemResource && request.method==="PATCH"){
+    const [,listId,itemId]=itemResource;
+    const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
+    if(!owned) return fail("Liste introuvable.",404);
+    const existing=await env.DB.prepare("SELECT id FROM wishlist_items WHERE id=? AND wishlist_id=?").bind(itemId,listId).first();
+    if(!existing) return fail("Cadeau introuvable.",404);
+    const body=await bodyJson(request); if(!body) return fail("Corps JSON invalide.");
+    const fields:string[]=[]; const values:unknown[]=[];
+    if("title" in body){const v=cleanText(body.title,160);if(!v||/[<>]/.test(v))return fail("Titre invalide.");fields.push("title=?");values.push(v);}
+    if("description" in body){if(typeof body.description!=="string"||body.description.length>2000)return fail("Description invalide.");fields.push("description=?");values.push(body.description.trim());}
+    if("category" in body){if(body.category!==null&&(typeof body.category!=="string"||body.category.length>80))return fail("Catégorie invalide.");fields.push("category=?");values.push(body.category);}
+    if("url" in body){
+      let value:string|null=null;
+      if(body.url!==null&&body.url!==""){
+        if(typeof body.url!=="string"||body.url.length>2048)return fail("URL invalide.");
+        try{const parsed=new URL(body.url);if(!["http:","https:"].includes(parsed.protocol)||parsed.username||parsed.password)return fail("URL invalide.");value=parsed.toString();}
+        catch{return fail("URL invalide.");}
+      }
+      fields.push("url=?");values.push(value);
+    }
+    if("quantity" in body){if(!Number.isInteger(body.quantity)||Number(body.quantity)<1||Number(body.quantity)>99)return fail("Quantité invalide.");fields.push("quantity=?");values.push(body.quantity);}
+    if("priority" in body){if(!Number.isInteger(body.priority)||Number(body.priority)<1||Number(body.priority)>3)return fail("Priorité invalide.");fields.push("priority=?");values.push(body.priority);}
+    if("status" in body){if(!["wanted","reserved","purchased"].includes(String(body.status)))return fail("Statut invalide.");fields.push("status=?");values.push(body.status);}
+    if("priceMinor" in body){if(body.priceMinor!==null&&(!Number.isSafeInteger(body.priceMinor)||Number(body.priceMinor)<0||Number(body.priceMinor)>100000000))return fail("Prix invalide.");fields.push("price_minor=?");values.push(body.priceMinor);}
+    if("currency" in body){if(typeof body.currency!=="string"||! /^[A-Z]{3}$/.test(body.currency))return fail("Devise invalide.");fields.push("currency=?");values.push(body.currency);}
+    if(!fields.length)return fail("Aucune modification fournie.");
+    fields.push("updated_at=?");values.push(new Date().toISOString());values.push(itemId,listId);
+    await env.DB.prepare("UPDATE wishlist_items SET "+fields.join(",")+" WHERE id=? AND wishlist_id=?").bind(...values).run();
+    await env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=?").bind(new Date().toISOString(),listId).run();
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(),user.id,"item.update","wishlist_item",itemId).run();
+    const item=await env.DB.prepare("SELECT id,title,url,image_url,description,category,price_minor,currency,quantity,priority,status,created_at,updated_at FROM wishlist_items WHERE id=? AND wishlist_id=?")
+      .bind(itemId,listId).first();
+    return json({item},200,headers);
+  }
+  if(itemResource && request.method==="DELETE"){
+    const [,,listId,itemId]=itemResource;
+    const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
+    if(!owned)return fail("Liste introuvable.",404);
+    const result=await env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=?").bind(itemId,listId).run();
+    if(!result.meta.changes)return fail("Cadeau introuvable.",404);
+    await env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=?").bind(new Date().toISOString(),listId).run();
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(),user.id,"item.delete","wishlist_item",itemId).run();
+    return json({ok:true},200,headers);
+  }
+
   return fail("Route introuvable.", 404);
 }
 export default {
