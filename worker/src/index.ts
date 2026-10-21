@@ -55,11 +55,10 @@ function parseCookies(request: Request): Map<string, string> {
   }
   return map;
 }
-function cookie(value: string, maxAge: number): string {
-  return `${SESSION_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
-}
-function clearCookie(): string {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+function bearerToken(request: Request): string | null {
+  const value = request.headers.get("Authorization") || "";
+  const match = value.match(/^Bearer ([a-f0-9]{64})$/i);
+  return match ? match[1].toLowerCase() : null;
 }
 function originAllowed(request: Request, env: Env): boolean {
   const origin = request.headers.get("Origin");
@@ -76,7 +75,7 @@ async function rateLimit(request: Request, env: Env, bucket: string, max = 12): 
   return (row?.count ?? 0) <= max;
 }
 async function getUser(request: Request, env: Env): Promise<SessionUser | null> {
-  const token = parseCookies(request).get(SESSION_COOKIE);
+  const token = bearerToken(request) || parseCookies(request).get(SESSION_COOKIE);
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
   const tokenHash = await sha256(`${env.SESSION_PEPPER}:${token}`);
   const row = await env.DB.prepare(
@@ -119,8 +118,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return new Response(null, { status: 204, headers: {
       "Access-Control-Allow-Origin": env.APP_ORIGIN,
       "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Vary": "Origin"
     }});
   }
@@ -128,7 +126,6 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (request.headers.get("Origin")) {
     if (!originAllowed(request, env)) return fail("Origine non autorisée.", 403);
     headers.set("Access-Control-Allow-Origin", env.APP_ORIGIN);
-    headers.set("Access-Control-Allow-Credentials", "true");
   }
   if (!url.pathname.startsWith("/api/")) return fail("Route introuvable.", 404);
   const mutation = request.method !== "GET" && request.method !== "HEAD";
@@ -160,8 +157,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       await env.DB.prepare("INSERT INTO users(id,email,display_name,password_hash,password_salt,password_iterations) VALUES(?,?,?,?,?,?)")
         .bind(id, email, displayName, hash, salt, PBKDF2_ITERATIONS).run();
       const session = await createSession(id, env);
-      headers.append("Set-Cookie", cookie(session.token, Math.floor(SESSION_MS / 1000)));
-      return json({ user: { id, email, displayName, role: "user" } }, 201, headers);
+      return json({ user: { id, email, displayName, role: "user" }, sessionToken: session.token, expiresAt: session.expires }, 201, headers);
     } catch {
       return fail("Impossible de créer le compte pour le moment.", 503);
     }
@@ -179,15 +175,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const calculated = await derivePassword(password, user.password_salt, user.password_iterations);
     if (calculated !== user.password_hash) return fail("E-mail ou mot de passe incorrect.", 401);
     const session = await createSession(user.id, env);
-    headers.append("Set-Cookie", cookie(session.token, Math.floor(SESSION_MS / 1000)));
-    return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role } }, 200, headers);
+    return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role }, sessionToken: session.token, expiresAt: session.expires }, 200, headers);
   }
 
   if (url.pathname === "/api/auth/logout" && request.method === "POST") {
-    const token = parseCookies(request).get(SESSION_COOKIE);
+    const token = bearerToken(request) || parseCookies(request).get(SESSION_COOKIE);
     if (token) await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?")
       .bind(await sha256(`${env.SESSION_PEPPER}:${token}`)).run();
-    headers.append("Set-Cookie", clearCookie());
     return json({ ok: true }, 200, headers);
   }
 
@@ -275,7 +269,6 @@ async function handle(request: Request, env: Env): Promise<Response> {
     await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
       .bind(randomId(),user.id,"account.delete","user",user.id).run();
     await env.DB.prepare("DELETE FROM users WHERE id=?").bind(user.id).run();
-    headers.append("Set-Cookie",clearCookie());
     return json({ok:true},200,headers);
   }
 
