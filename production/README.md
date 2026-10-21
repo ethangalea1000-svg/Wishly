@@ -1,56 +1,54 @@
-# Wishly — version production (socle initial)
+# Wishly — socle de production
 
-Le site GitHub Pages actuel est une maquette. Ce répertoire et le dossier `worker/` constituent le démarrage séparé de l'application de production. Ne pas utiliser de données personnelles réelles dans la démo.
+Le site GitHub Pages actuel est une **maquette**. Cette branche contient un socle de travail séparé pour le futur site de production. Le dépôt original `Liste-cadeaux-ethan` et la base `wishly-demo-db` ne doivent pas être modifiés ni réutilisés pour la production.
 
-## Architecture cible à coût minimal
-- Frontend : Cloudflare Pages ou autre hébergement statique.
-- API : Cloudflare Workers.
-- Données : une **nouvelle base D1 dédiée à la production**.
-- Authentification : sessions serveur en cookie sécurisé; aucun jeton de session dans localStorage.
-- E-mail, OAuth, paiement et affiliation : désactivés tant qu'un fournisseur n'est pas choisi et configuré.
+## Architecture cible
+- Frontend : Cloudflare Pages, contenu du dossier `production/`.
+- API : Cloudflare Pages Functions via `functions/api/[[path]].ts`, même origine que le frontend.
+- Données : nouvelle base Cloudflare D1 dédiée.
+- Sessions : cookie HttpOnly/Secure/SameSite; aucun jeton de session dans localStorage.
+- E-mail, OAuth, paiement et affiliation : désactivés tant qu'aucun fournisseur n'est configuré.
 
-## Contenu livré dans cette branche
-- `production/index.html` et `production/app.js` : interface responsive pour l'inscription, la connexion, la gestion des listes et cadeaux, le partage et les actions d'archivage/duplication.
-- `production/shared.html` et `production/shared.js` : affichage des listes partagées, réservations invitées et annulation par code secret.
-- `production/confidentialite.html`, `conditions.html`, `mentions-legales.html` : brouillons à compléter/valider, pas des textes juridiques prêts à publier.
-- `production/404.html` : page d'erreur personnalisée.
-- `production/_headers` : en-têtes de sécurité HTTP de base.
-- `functions/api/[[path]].ts` : adaptateur Pages Functions pour exposer l'API sur la même origine.
-- `worker/src/index.ts` : API de départ (santé, inscription, connexion, déconnexion, session courante, listes et ajout d'articles).
-- `worker/migrations/0001_initial.sql` : schéma de base versionné.
-- `worker/wrangler.toml` : modèle de configuration.
-- `production/PLAN-200.md` : suivi des exigences et phases.
+## Déjà livré dans cette branche
+- Interface responsive : création de compte, connexion, gestion des listes et cadeaux, catégorie, prix estimé, priorité, quantité et liens.
+- API : inscription, connexion/déconnexion, session, listes, cadeaux, archivage, duplication, modification/suppression, partage révocable.
+- Page partagée : liste publique via lien secret, réservations invitées, contrôle de quantité et annulation avec code secret.
+- Export JSON des données du compte et suppression confirmée du compte.
+- Schéma D1 versionné, journal d'audit et limitation initiale des tentatives.
+- En-têtes de sécurité, CSP, CI TypeScript, tests de fumée API, vérification syntaxique JS et tests des migrations SQL.
+- Pages de brouillon confidentialité, conditions, mentions légales et page 404.
 
-Ce n'est **pas encore une version de production prête à accueillir le public**. Il manque notamment la suite de tests, le frontend de production, la vérification e-mail, la réinitialisation du mot de passe, les flux invités de réservation, l'administration renforcée, la revue juridique et le déploiement de staging.
+La CI a réussi pour les vérifications existantes, mais cela ne remplace pas des tests navigateur, une validation sur D1 distant de test ou un audit indépendant.
 
-## Pré-requis avant déploiement
-1. Créer une base D1 neuve nommée `wishly-production-db`; ne jamais remplacer l'identifiant par celui de `wishly-demo-db`.
-2. Remplacer `REPLACE_WITH_NEW_PRODUCTION_D1_DATABASE_ID` dans `worker/wrangler.toml` par l'identifiant de cette nouvelle base.
-3. Configurer `APP_ORIGIN` avec l'origine exacte du frontend de production. Une origine incorrecte bloque les appels mutateurs.
-4. Configurer le secret avec `cd worker && npx wrangler secret put SESSION_PEPPER`; utiliser une valeur aléatoire longue. Ne jamais la committer.
-5. Installer les dépendances puis appliquer la migration sur la base **locale d'abord**.
-6. Ajouter des tests automatisés, tester la restauration, et faire relire les contrôles d'accès avant d'ouvrir l'inscription publique.
-7. Déployer sur un environnement de test avant toute production.
+## Configuration de production — ne pas lancer sans ces prérequis
+1. Créer une base D1 neuve nommée `wishly-production-db`.
+2. Remplacer `REPLACE_WITH_NEW_PRODUCTION_D1_DATABASE_ID` dans le `wrangler.toml` racine par l'ID de cette nouvelle base.
+3. Définir `APP_ORIGIN` dans le `wrangler.toml` racine à l'origine exacte du futur site, en HTTPS.
+4. Configurer le secret avec `npx wrangler pages secret put SESSION_PEPPER --project-name wishly-production`. Utiliser une valeur aléatoire longue; ne jamais la committer.
+5. Installer les dépendances dans `worker/`, appliquer les migrations en local, puis vérifier la restauration d'une sauvegarde.
+6. Créer un environnement de staging et tester les flux de compte, les cookies, le partage et les réservations.
+7. Faire relire la sécurité, la confidentialité et les textes juridiques avant toute ouverture publique.
+
+**Ne pas déployer sur GitHub Pages** : il ne fournit pas les Pages Functions nécessaires au backend. Ne jamais pointer cette configuration vers `wishly-demo-db`.
 
 ## Développement local
-Depuis `worker/` :
-```sh
-npm install
-npx wrangler d1 create wishly-production-db
-# Copie l'identifiant renvoyé dans wrangler.toml.
-npm run db:migrate:local
-npm run dev
-```
+1. Copier `worker/.dev.vars.example` vers `worker/.dev.vars`; ne pas committer le second fichier.
+2. Dans `worker/`, exécuter :
+   ```sh
+   npm install
+   npm run db:migrate:local
+   npm run dev
+   ```
+3. Pour tester la Pages Function et le frontend ensemble, utiliser le serveur local Cloudflare Pages depuis la racine, avec une origine locale exacte et une base D1 locale. Vérifier les options de la version installée de Wrangler avant toute commande distante.
 
-Pour les migrations distantes, vérifier deux fois la cible avant `npm run db:migrate:remote`. Ne jamais appliquer les migrations à la base de démonstration.
+Ne lance pas `db:migrate:remote` avant d'avoir revérifié la cible D1 et créé une sauvegarde.
 
-## Limites connues du socle actuel
-- Les sessions ont une durée fixe de 14 jours; une interface de gestion/révocation des sessions est à ajouter.
-- La limitation de débit est une première défense et doit être testée sous concurrence; un service de protection de bord peut compléter.
-- Le mot de passe est dérivé avec PBKDF2 via Web Crypto. Revoir les paramètres et la stratégie de hachage lors de la revue sécurité.
-- L'inscription répond par un message générique en cas de compte déjà existant, mais la réponse HTTP reste différenciée; harmoniser si la politique anti-énumération l'exige.
-- Les contrôles d'origine ne remplacent pas un modèle CSRF complet pour tous les futurs flux.
-- Le rôle admin n'est pas attribuable via l'API publique. Ne jamais créer une route d'auto-promotion.
-- La réservation invité fonctionne dans le socle actuel, mais la double confirmation, les notifications et la gestion avancée de contributions restent à faire.
-- L'export JSON et la suppression de compte avec confirmation sont implémentés, mais restent à tester en intégration. La vérification d'e-mail, la récupération de compte, le MFA administrateur et l'interface admin ne sont pas implémentés.
-- Les textes juridiques sont des brouillons avec champs à compléter; ils ne doivent pas être considérés comme validés.
+## Limites restantes
+- Vérification d'e-mail, récupération du mot de passe, OAuth, MFA administrateur et interface d'administration.
+- Gestion avancée des sessions, nettoyage planifié des limites de débit, double confirmation de réservation, notifications et contributions groupées.
+- Tests d'intégration complets, tests navigateur/accessibilité/performance, audit de sécurité indépendant et staging.
+- Politique de conservation, textes légaux complétés, identité/contact du responsable et validation RGPD.
+- Intégrations marchandes, extraction de prix, affiliation et paiements : non activés.
+
+## Configuration autonome du Worker
+`worker/wrangler.toml` est un modèle alternatif pour tester l'API seule. Pour le déploiement cible, utiliser la configuration Pages à la racine et conserver le frontend/API sur la même origine. Les valeurs contenant `REPLACE` sont des garde-fous et doivent être remplacées seulement après création des ressources de production.
