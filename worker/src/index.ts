@@ -123,33 +123,34 @@ async function handle(request: Request, env: Env): Promise<Response> {
     }});
   }
   const headers = new Headers();
+  const reject = (message: string, status = 400): Response => fail(message, status, headers);
   if (request.headers.get("Origin")) {
-    if (!originAllowed(request, env)) return fail("Origine non autorisée.", 403);
+    if (!originAllowed(request, env)) return reject("Origine non autorisée.", 403);
     headers.set("Access-Control-Allow-Origin", env.APP_ORIGIN);
   }
-  if (!url.pathname.startsWith("/api/")) return fail("Route introuvable.", 404);
+  if (!url.pathname.startsWith("/api/")) return reject("Route introuvable.", 404);
   const mutation = request.method !== "GET" && request.method !== "HEAD";
-  if (mutation && request.headers.get("Origin") !== env.APP_ORIGIN) return fail("Origine non autorisée.", 403);
+  if (mutation && request.headers.get("Origin") !== env.APP_ORIGIN) return reject("Origine non autorisée.", 403);
 
   if (url.pathname === "/api/health" && request.method === "GET") {
     try {
       await env.DB.prepare("SELECT 1 AS ok").first();
       return json({ status: "ok", service: "wishly-api" }, 200, headers);
-    } catch { return fail("Service temporairement indisponible.", 503); }
+    } catch { return reject("Service temporairement indisponible.", 503); }
   }
 
   if (url.pathname === "/api/auth/register" && request.method === "POST") {
-    if (!(await rateLimit(request, env, "register", 5))) return fail("Trop de tentatives. Réessaie plus tard.", 429);
+    if (!(await rateLimit(request, env, "register", 5))) return reject("Trop de tentatives. Réessaie plus tard.", 429);
     const body = await bodyJson(request);
-    if (!body) return fail("Corps JSON invalide.");
+    if (!body) return reject("Corps JSON invalide.");
     const email = cleanText(body.email, 254)?.toLowerCase();
     const displayName = cleanText(body.displayName, 60);
     const password = typeof body.password === "string" ? body.password : "";
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Adresse e-mail invalide.");
-    if (!displayName || /[<>]/.test(displayName)) return fail("Nom affiché invalide.");
-    if (password.length < 12 || password.length > 128) return fail("Le mot de passe doit contenir entre 12 et 128 caractères.");
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reject("Adresse e-mail invalide.");
+    if (!displayName || /[<>]/.test(displayName)) return reject("Nom affiché invalide.");
+    if (password.length < 12 || password.length > 128) return reject("Le mot de passe doit contenir entre 12 et 128 caractères.");
     const existing = await env.DB.prepare("SELECT id FROM users WHERE email=? COLLATE NOCASE").bind(email).first();
-    if (existing) return fail("Impossible de créer ce compte avec ces informations.", 409);
+    if (existing) return reject("Impossible de créer ce compte avec ces informations.", 409);
     const salt = randomToken(16);
     const hash = await derivePassword(password, salt);
     const id = randomId();
@@ -159,21 +160,21 @@ async function handle(request: Request, env: Env): Promise<Response> {
       const session = await createSession(id, env);
       return json({ user: { id, email, displayName, role: "user" }, sessionToken: session.token, expiresAt: session.expires }, 201, headers);
     } catch {
-      return fail("Impossible de créer le compte pour le moment.", 503);
+      return reject("Impossible de créer le compte pour le moment.", 503);
     }
   }
 
   if (url.pathname === "/api/auth/login" && request.method === "POST") {
-    if (!(await rateLimit(request, env, "login", 8))) return fail("Trop de tentatives. Réessaie plus tard.", 429);
+    if (!(await rateLimit(request, env, "login", 8))) return reject("Trop de tentatives. Réessaie plus tard.", 429);
     const body = await bodyJson(request);
     const email = cleanText(body?.email, 254)?.toLowerCase();
     const password = typeof body?.password === "string" ? body.password : "";
-    if (!email || password.length === 0 || password.length > 128) return fail("E-mail ou mot de passe incorrect.", 401);
+    if (!email || password.length === 0 || password.length > 128) return reject("E-mail ou mot de passe incorrect.", 401);
     const user = await env.DB.prepare("SELECT * FROM users WHERE email=? COLLATE NOCASE AND deleted_at IS NULL")
       .bind(email).first<UserRow>();
-    if (!user) return fail("E-mail ou mot de passe incorrect.", 401);
+    if (!user) return reject("E-mail ou mot de passe incorrect.", 401);
     const calculated = await derivePassword(password, user.password_salt, user.password_iterations);
-    if (calculated !== user.password_hash) return fail("E-mail ou mot de passe incorrect.", 401);
+    if (calculated !== user.password_hash) return reject("E-mail ou mot de passe incorrect.", 401);
     const session = await createSession(user.id, env);
     return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role }, sessionToken: session.token, expiresAt: session.expires }, 200, headers);
   }
@@ -187,7 +188,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
   if (url.pathname === "/api/auth/me" && request.method === "GET") {
     const user = await getUser(request, env);
-    if (!user) return fail("Authentification requise.", 401);
+    if (!user) return reject("Authentification requise.", 401);
     return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role } }, 200, headers);
   }
 
@@ -196,7 +197,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const list = await env.DB.prepare(
       "SELECT id,title,description,occasion,event_date,currency FROM wishlists WHERE share_token=? AND visibility IN ('public','unlisted') AND archived_at IS NULL"
     ).bind(publicListMatch[1]).first<{id:string;title:string;description:string;occasion:string|null;event_date:string|null;currency:string}>();
-    if (!list) return fail("Liste introuvable.",404);
+    if (!list) return reject("Liste introuvable.",404);
     const result = await env.DB.prepare(
       "SELECT i.id,i.title,i.url,i.image_url,i.description,i.category,i.price_minor,i.currency,i.quantity,i.priority, (SELECT COUNT(*) FROM reservations r WHERE r.item_id=i.id AND r.status='active') AS reserved_quantity FROM wishlist_items i WHERE i.wishlist_id=? ORDER BY i.priority DESC,i.created_at DESC LIMIT 200"
     ).bind(list.id).all();
@@ -205,23 +206,23 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   const publicReserveMatch=url.pathname.match(/^\/api\/shared\/([a-f0-9]{64})\/items\/([0-9a-f-]{36})\/reservations$/i);
   if(publicReserveMatch && request.method==="POST"){
-    if(!(await rateLimit(request,env,"guest-reservation",15)))return fail("Trop de tentatives. Réessaie plus tard.",429);
+    if(!(await rateLimit(request,env,"guest-reservation",15)))return reject("Trop de tentatives. Réessaie plus tard.",429);
     const list=await env.DB.prepare("SELECT id FROM wishlists WHERE share_token=? AND visibility IN ('public','unlisted') AND archived_at IS NULL")
       .bind(publicReserveMatch[1]).first<{id:string}>();
-    if(!list)return fail("Liste introuvable.",404);
+    if(!list)return reject("Liste introuvable.",404);
     const body=await bodyJson(request);
     const guestName=cleanText(body?.guestName,60);
-    if(!guestName||/[<>]/.test(guestName))return fail("Nom invalide.");
+    if(!guestName||/[<>]/.test(guestName))return reject("Nom invalide.");
     const item=await env.DB.prepare("SELECT id,quantity FROM wishlist_items WHERE id=? AND wishlist_id=?")
       .bind(publicReserveMatch[2],list.id).first<{id:string;quantity:number}>();
-    if(!item)return fail("Cadeau introuvable.",404);
+    if(!item)return reject("Cadeau introuvable.",404);
     const reservationId=randomId();
     const cancelToken=randomToken();
     const tokenHash=await sha256(env.SESSION_PEPPER+":"+cancelToken);
     const created=await env.DB.prepare(
       "INSERT INTO reservations(id,item_id,guest_name,cancel_token_hash,status) SELECT ?,?,?,?,'active' WHERE (SELECT COUNT(*) FROM reservations WHERE item_id=? AND status='active') < ?"
     ).bind(reservationId,item.id,guestName,tokenHash,item.id,item.quantity).run();
-    if(!created.meta.changes)return fail("Ce cadeau vient d'être entièrement réservé. Actualise la liste.",409);
+    if(!created.meta.changes)return reject("Ce cadeau vient d'être entièrement réservé. Actualise la liste.",409);
     await env.DB.prepare("INSERT INTO audit_events(id,action,entity_type,entity_id) VALUES(?,?,?,?)")
       .bind(randomId(),"reservation.create","reservation",reservationId).run();
     return json({ok:true,reservationId,cancellationToken:cancelToken,message:"Garde ce code pour annuler ta réservation."},201,headers);
@@ -230,23 +231,23 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if(cancelMatch && request.method==="POST"){
     const body=await bodyJson(request);
     const cancelToken=typeof body?.cancellationToken==="string"?body.cancellationToken:"";
-    if(!/^[a-f0-9]{64}$/.test(cancelToken))return fail("Code d'annulation invalide.",403);
+    if(!/^[a-f0-9]{64}$/.test(cancelToken))return reject("Code d'annulation invalide.",403);
     const tokenHash=await sha256(env.SESSION_PEPPER+":"+cancelToken);
     const result=await env.DB.prepare("UPDATE reservations SET status='cancelled',updated_at=? WHERE id=? AND cancel_token_hash=? AND status='active'")
       .bind(new Date().toISOString(),cancelMatch[1],tokenHash).run();
-    if(!result.meta.changes)return fail("Réservation introuvable ou déjà annulée.",404);
+    if(!result.meta.changes)return reject("Réservation introuvable ou déjà annulée.",404);
     await env.DB.prepare("INSERT INTO audit_events(id,action,entity_type,entity_id) VALUES(?,?,?,?)")
       .bind(randomId(),"reservation.cancel","reservation",cancelMatch[1]).run();
     return json({ok:true},200,headers);
   }
 
   const user = await getUser(request, env);
-  if (!user) return fail("Authentification requise.", 401);
+  if (!user) return reject("Authentification requise.", 401);
 
   if(url.pathname==="/api/account/export" && request.method==="GET"){
     const account=await env.DB.prepare("SELECT id,email,display_name,created_at,email_verified_at FROM users WHERE id=? AND deleted_at IS NULL")
       .bind(user.id).first();
-    if(!account)return fail("Compte introuvable.",404);
+    if(!account)return reject("Compte introuvable.",404);
     const lists=await env.DB.prepare("SELECT id,title,description,visibility,occasion,event_date,currency,archived_at,created_at,updated_at FROM wishlists WHERE owner_id=? ORDER BY created_at")
       .bind(user.id).all<any>();
     const exportedLists=await Promise.all(lists.results.map(async(list:any)=>{
@@ -262,10 +263,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const confirmEmail=typeof body?.confirmEmail==="string"?body.confirmEmail.trim().toLowerCase():"";
     const account=await env.DB.prepare("SELECT email,password_hash,password_salt,password_iterations FROM users WHERE id=? AND deleted_at IS NULL")
       .bind(user.id).first<{email:string;password_hash:string;password_salt:string;password_iterations:number}>();
-    if(!account)return fail("Compte introuvable.",404);
-    if(confirmEmail!==account.email.toLowerCase()||password.length===0||password.length>128)return fail("Confirmation invalide.",403);
+    if(!account)return reject("Compte introuvable.",404);
+    if(confirmEmail!==account.email.toLowerCase()||password.length===0||password.length>128)return reject("Confirmation invalide.",403);
     const calculated=await derivePassword(password,account.password_salt,account.password_iterations);
-    if(calculated!==account.password_hash)return fail("Confirmation invalide.",403);
+    if(calculated!==account.password_hash)return reject("Confirmation invalide.",403);
     await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
       .bind(randomId(),user.id,"account.delete","user",user.id).run();
     await env.DB.prepare("DELETE FROM users WHERE id=?").bind(user.id).run();
@@ -277,7 +278,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const listId=shareOwnerMatch[1];
     const owned=await env.DB.prepare("SELECT id,share_token,visibility FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id)
       .first<{id:string;share_token:string|null;visibility:string}>();
-    if(!owned)return fail("Liste introuvable.",404);
+    if(!owned)return reject("Liste introuvable.",404);
     const body=await bodyJson(request);
     if(body?.revoke===true){
       await env.DB.prepare("UPDATE wishlists SET share_token=NULL,visibility='private',updated_at=? WHERE id=? AND owner_id=?")
@@ -307,9 +308,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const occasion = typeof body?.occasion === "string" ? body.occasion.trim().slice(0,80) : null;
     const eventDate = body?.eventDate == null || body?.eventDate === "" ? null : body.eventDate;
     const currency = typeof body?.currency === "string" ? body.currency : "EUR";
-    if (!title || /[<>]/.test(title)) return fail("Titre invalide.");
-    if (eventDate !== null && (typeof eventDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate) || Number.isNaN(Date.parse(eventDate)))) return fail("Date invalide.");
-    if (!/^[A-Z]{3}$/.test(currency)) return fail("Devise invalide.");
+    if (!title || /[<>]/.test(title)) return reject("Titre invalide.");
+    if (eventDate !== null && (typeof eventDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate) || Number.isNaN(Date.parse(eventDate)))) return reject("Date invalide.");
+    if (!/^[A-Z]{3}$/.test(currency)) return reject("Devise invalide.");
     const id = randomId();
     await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
       .bind(id, user.id, title, description, visibility, occasion, eventDate, currency).run();
@@ -321,7 +322,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const list = await env.DB.prepare(
       "SELECT id,title,description,visibility,occasion,event_date,currency,archived_at,created_at,updated_at FROM wishlists WHERE id=? AND owner_id=?"
     ).bind(listMatch[1], user.id).first();
-    if (!list) return fail("Liste introuvable.", 404);
+    if (!list) return reject("Liste introuvable.", 404);
     const items = await env.DB.prepare(
       "SELECT id,title,url,image_url,description,category,price_minor,currency,quantity,priority,status,created_at,updated_at FROM wishlist_items WHERE wishlist_id=? ORDER BY created_at DESC LIMIT 200"
     ).bind(listMatch[1]).all();
@@ -333,35 +334,35 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const listId = itemCollection[1];
     const owned = await env.DB.prepare("SELECT id,currency FROM wishlists WHERE id=? AND owner_id=?")
       .bind(listId, user.id).first<{id:string;currency:string}>();
-    if (!owned) return fail("Liste introuvable.", 404);
+    if (!owned) return reject("Liste introuvable.", 404);
     const body = await bodyJson(request);
     const title = cleanText(body?.title, 160);
     const description = typeof body?.description === "string" ? body.description.trim().slice(0, 2000) : "";
     const category = cleanText(body?.category, 80);
     const urlInput = cleanText(body?.url, 2048);
     let urlValue: string | null = urlInput;
-    if (!title || /[<>]/.test(title)) return fail("Titre de cadeau invalide.");
-    if (body?.url != null && body.url !== "" && !urlInput) return fail("URL invalide.");
+    if (!title || /[<>]/.test(title)) return reject("Titre de cadeau invalide.");
+    if (body?.url != null && body.url !== "" && !urlInput) return reject("URL invalide.");
     if (urlInput) {
       try {
         const parsed = new URL(urlInput);
-        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return fail("Seules les URL HTTP(S) sont autorisées.");
-        if (parsed.username || parsed.password) return fail("URL invalide.");
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return reject("Seules les URL HTTP(S) sont autorisées.");
+        if (parsed.username || parsed.password) return reject("URL invalide.");
         urlValue = normalizeGiftUrl(parsed.toString());
-      } catch { return fail("URL invalide."); }
+      } catch { return reject("URL invalide."); }
     }
     if (urlValue) {
       const duplicate = await env.DB.prepare("SELECT id FROM wishlist_items WHERE wishlist_id=? AND url=?")
         .bind(listId,urlValue).first();
-      if (duplicate) return fail("Ce lien est déjà présent dans cette liste.",409);
+      if (duplicate) return reject("Ce lien est déjà présent dans cette liste.",409);
     }
     const quantity = Number.isInteger(body?.quantity) ? Number(body?.quantity) : 1;
     const priority = Number.isInteger(body?.priority) ? Number(body?.priority) : 2;
     const priceMinor = body?.priceMinor == null ? null : Number(body.priceMinor);
     const currency = typeof body?.currency === "string" ? body.currency : owned.currency;
-    if (!/^[A-Z]{3}$/.test(currency)) return fail("Devise invalide.");
-    if (quantity < 1 || quantity > 99 || priority < 1 || priority > 3) return fail("Quantité ou priorité invalide.");
-    if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 0 || priceMinor > 100000000)) return fail("Prix invalide.");
+    if (!/^[A-Z]{3}$/.test(currency)) return reject("Devise invalide.");
+    if (quantity < 1 || quantity > 99 || priority < 1 || priority > 3) return reject("Quantité ou priorité invalide.");
+    if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 0 || priceMinor > 100000000)) return reject("Prix invalide.");
     const id = randomId();
     await env.DB.prepare(
       "INSERT INTO wishlist_items(id,wishlist_id,title,url,description,category,price_minor,currency,quantity,priority) VALUES(?,?,?,?,?,?,?,?,?,?)"
@@ -375,7 +376,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const listId = listAction[1];
     const owned = await env.DB.prepare("SELECT id,archived_at FROM wishlists WHERE id=? AND owner_id=?")
       .bind(listId, user.id).first<{id:string;archived_at:string|null}>();
-    if (!owned) return fail("Liste introuvable.", 404);
+    if (!owned) return reject("Liste introuvable.", 404);
     const archivedAt = owned.archived_at ? null : new Date().toISOString();
     await env.DB.prepare("UPDATE wishlists SET archived_at=?,updated_at=? WHERE id=? AND owner_id=?")
       .bind(archivedAt, new Date().toISOString(), listId, user.id).run();
@@ -387,7 +388,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const listId = listAction[1];
     const source = await env.DB.prepare("SELECT title,description,visibility,occasion,event_date,currency FROM wishlists WHERE id=? AND owner_id=?")
       .bind(listId, user.id).first<{title:string;description:string;visibility:string;occasion:string|null;event_date:string|null;currency:string}>();
-    if (!source) return fail("Liste introuvable.", 404);
+    if (!source) return reject("Liste introuvable.", 404);
     const newId = randomId();
     const newTitle = (source.title + " (copie)").slice(0,100);
     await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
@@ -403,38 +404,38 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (listResource && request.method === "PATCH") {
     const listId = listResource[1];
     const body = await bodyJson(request);
-    if (!body) return fail("Corps JSON invalide.");
+    if (!body) return reject("Corps JSON invalide.");
     const owned = await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
-    if (!owned) return fail("Liste introuvable.",404);
+    if (!owned) return reject("Liste introuvable.",404);
     const fields: string[] = [];
     const values: unknown[] = [];
     if ("title" in body) {
       const title=cleanText(body.title,100);
-      if(!title || /[<>]/.test(title)) return fail("Titre invalide.");
+      if(!title || /[<>]/.test(title)) return reject("Titre invalide.");
       fields.push("title=?"); values.push(title);
     }
     if ("description" in body) {
-      if(typeof body.description!=="string" || body.description.length>2000) return fail("Description invalide.");
+      if(typeof body.description!=="string" || body.description.length>2000) return reject("Description invalide.");
       fields.push("description=?"); values.push(body.description.trim());
     }
     if ("visibility" in body) {
-      if(!["private","unlisted","public"].includes(String(body.visibility))) return fail("Visibilité invalide.");
+      if(!["private","unlisted","public"].includes(String(body.visibility))) return reject("Visibilité invalide.");
       fields.push("visibility=?"); values.push(body.visibility);
       if (body.visibility === "private") { fields.push("share_token=?"); values.push(null); }
     }
     if ("occasion" in body) {
-      if(body.occasion!==null && (typeof body.occasion!=="string" || body.occasion.length>80)) return fail("Occasion invalide.");
+      if(body.occasion!==null && (typeof body.occasion!=="string" || body.occasion.length>80)) return reject("Occasion invalide.");
       fields.push("occasion=?"); values.push(body.occasion);
     }
     if ("eventDate" in body) {
-      if(body.eventDate!==null && (typeof body.eventDate!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.eventDate) || Number.isNaN(Date.parse(body.eventDate)))) return fail("Date invalide.");
+      if(body.eventDate!==null && (typeof body.eventDate!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.eventDate) || Number.isNaN(Date.parse(body.eventDate)))) return reject("Date invalide.");
       fields.push("event_date=?"); values.push(body.eventDate);
     }
     if ("currency" in body) {
-      if(typeof body.currency!=="string" || !/^[A-Z]{3}$/.test(body.currency)) return fail("Devise invalide.");
+      if(typeof body.currency!=="string" || !/^[A-Z]{3}$/.test(body.currency)) return reject("Devise invalide.");
       fields.push("currency=?"); values.push(body.currency);
     }
-    if (!fields.length) return fail("Aucune modification fournie.");
+    if (!fields.length) return reject("Aucune modification fournie.");
     fields.push("updated_at=?"); values.push(new Date().toISOString());
     values.push(listId,user.id);
     await env.DB.prepare("UPDATE wishlists SET "+fields.join(",")+" WHERE id=? AND owner_id=?").bind(...values).run();
@@ -446,7 +447,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   if (listResource && request.method === "DELETE") {
     const result=await env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=?").bind(listResource[1],user.id).run();
-    if(!result.meta.changes) return fail("Liste introuvable.",404);
+    if(!result.meta.changes) return reject("Liste introuvable.",404);
     await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
       .bind(randomId(),user.id,"wishlist.delete","wishlist",listResource[1]).run();
     return json({ok:true},200,headers);
@@ -456,30 +457,30 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if(itemResource && request.method==="PATCH"){
     const [,listId,itemId]=itemResource;
     const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
-    if(!owned) return fail("Liste introuvable.",404);
+    if(!owned) return reject("Liste introuvable.",404);
     const existing=await env.DB.prepare("SELECT id FROM wishlist_items WHERE id=? AND wishlist_id=?").bind(itemId,listId).first();
-    if(!existing) return fail("Cadeau introuvable.",404);
-    const body=await bodyJson(request); if(!body) return fail("Corps JSON invalide.");
+    if(!existing) return reject("Cadeau introuvable.",404);
+    const body=await bodyJson(request); if(!body) return reject("Corps JSON invalide.");
     const fields:string[]=[]; const values:unknown[]=[];
-    if("title" in body){const v=cleanText(body.title,160);if(!v||/[<>]/.test(v))return fail("Titre invalide.");fields.push("title=?");values.push(v);}
-    if("description" in body){if(typeof body.description!=="string"||body.description.length>2000)return fail("Description invalide.");fields.push("description=?");values.push(body.description.trim());}
-    if("category" in body){if(body.category!==null&&(typeof body.category!=="string"||body.category.length>80))return fail("Catégorie invalide.");fields.push("category=?");values.push(body.category);}
+    if("title" in body){const v=cleanText(body.title,160);if(!v||/[<>]/.test(v))return reject("Titre invalide.");fields.push("title=?");values.push(v);}
+    if("description" in body){if(typeof body.description!=="string"||body.description.length>2000)return reject("Description invalide.");fields.push("description=?");values.push(body.description.trim());}
+    if("category" in body){if(body.category!==null&&(typeof body.category!=="string"||body.category.length>80))return reject("Catégorie invalide.");fields.push("category=?");values.push(body.category);}
     if("url" in body){
       let value:string|null=null;
       if(body.url!==null&&body.url!==""){
-        if(typeof body.url!=="string"||body.url.length>2048)return fail("URL invalide.");
-        try{const parsed=new URL(body.url);if(!["http:","https:"].includes(parsed.protocol)||parsed.username||parsed.password)return fail("URL invalide.");value=normalizeGiftUrl(parsed.toString());}
-        catch{return fail("URL invalide.");}
+        if(typeof body.url!=="string"||body.url.length>2048)return reject("URL invalide.");
+        try{const parsed=new URL(body.url);if(!["http:","https:"].includes(parsed.protocol)||parsed.username||parsed.password)return reject("URL invalide.");value=normalizeGiftUrl(parsed.toString());}
+        catch{return reject("URL invalide.");}
       }
-      if(value){const duplicate=await env.DB.prepare("SELECT id FROM wishlist_items WHERE wishlist_id=? AND url=? AND id<>?").bind(listId,value,itemId).first();if(duplicate)return fail("Ce lien est déjà présent dans cette liste.",409);}
+      if(value){const duplicate=await env.DB.prepare("SELECT id FROM wishlist_items WHERE wishlist_id=? AND url=? AND id<>?").bind(listId,value,itemId).first();if(duplicate)return reject("Ce lien est déjà présent dans cette liste.",409);}
       fields.push("url=?");values.push(value);
     }
-    if("quantity" in body){if(!Number.isInteger(body.quantity)||Number(body.quantity)<1||Number(body.quantity)>99)return fail("Quantité invalide.");fields.push("quantity=?");values.push(body.quantity);}
-    if("priority" in body){if(!Number.isInteger(body.priority)||Number(body.priority)<1||Number(body.priority)>3)return fail("Priorité invalide.");fields.push("priority=?");values.push(body.priority);}
-    if("status" in body){if(!["wanted","reserved","purchased"].includes(String(body.status)))return fail("Statut invalide.");fields.push("status=?");values.push(body.status);}
-    if("priceMinor" in body){if(body.priceMinor!==null&&(!Number.isSafeInteger(body.priceMinor)||Number(body.priceMinor)<0||Number(body.priceMinor)>100000000))return fail("Prix invalide.");fields.push("price_minor=?");values.push(body.priceMinor);}
-    if("currency" in body){if(typeof body.currency!=="string"||! /^[A-Z]{3}$/.test(body.currency))return fail("Devise invalide.");fields.push("currency=?");values.push(body.currency);}
-    if(!fields.length)return fail("Aucune modification fournie.");
+    if("quantity" in body){if(!Number.isInteger(body.quantity)||Number(body.quantity)<1||Number(body.quantity)>99)return reject("Quantité invalide.");fields.push("quantity=?");values.push(body.quantity);}
+    if("priority" in body){if(!Number.isInteger(body.priority)||Number(body.priority)<1||Number(body.priority)>3)return reject("Priorité invalide.");fields.push("priority=?");values.push(body.priority);}
+    if("status" in body){if(!["wanted","reserved","purchased"].includes(String(body.status)))return reject("Statut invalide.");fields.push("status=?");values.push(body.status);}
+    if("priceMinor" in body){if(body.priceMinor!==null&&(!Number.isSafeInteger(body.priceMinor)||Number(body.priceMinor)<0||Number(body.priceMinor)>100000000))return reject("Prix invalide.");fields.push("price_minor=?");values.push(body.priceMinor);}
+    if("currency" in body){if(typeof body.currency!=="string"||! /^[A-Z]{3}$/.test(body.currency))return reject("Devise invalide.");fields.push("currency=?");values.push(body.currency);}
+    if(!fields.length)return reject("Aucune modification fournie.");
     fields.push("updated_at=?");values.push(new Date().toISOString());values.push(itemId,listId);
     await env.DB.prepare("UPDATE wishlist_items SET "+fields.join(",")+" WHERE id=? AND wishlist_id=?").bind(...values).run();
     await env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=?").bind(new Date().toISOString(),listId).run();
@@ -492,16 +493,16 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if(itemResource && request.method==="DELETE"){
     const [,,listId,itemId]=itemResource;
     const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
-    if(!owned)return fail("Liste introuvable.",404);
+    if(!owned)return reject("Liste introuvable.",404);
     const result=await env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=?").bind(itemId,listId).run();
-    if(!result.meta.changes)return fail("Cadeau introuvable.",404);
+    if(!result.meta.changes)return reject("Cadeau introuvable.",404);
     await env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=?").bind(new Date().toISOString(),listId).run();
     await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
       .bind(randomId(),user.id,"item.delete","wishlist_item",itemId).run();
     return json({ok:true},200,headers);
   }
 
-  return fail("Route introuvable.", 404);
+  return reject("Route introuvable.", 404);
 }
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
