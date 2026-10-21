@@ -304,11 +304,16 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const title = cleanText(body?.title, 100);
     const description = typeof body?.description === "string" ? body.description.trim().slice(0, 2000) : "";
     const visibility = body?.visibility === "public" || body?.visibility === "unlisted" ? body.visibility : "private";
+    const occasion = typeof body?.occasion === "string" ? body.occasion.trim().slice(0,80) : null;
+    const eventDate = body?.eventDate == null || body?.eventDate === "" ? null : body.eventDate;
+    const currency = typeof body?.currency === "string" ? body.currency : "EUR";
     if (!title || /[<>]/.test(title)) return fail("Titre invalide.");
+    if (eventDate !== null && (typeof eventDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate) || Number.isNaN(Date.parse(eventDate)))) return fail("Date invalide.");
+    if (!/^[A-Z]{3}$/.test(currency)) return fail("Devise invalide.");
     const id = randomId();
-    await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility) VALUES(?,?,?,?,?)")
-      .bind(id, user.id, title, description, visibility).run();
-    return json({ list: { id, title, description, visibility } }, 201, headers);
+    await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
+      .bind(id, user.id, title, description, visibility, occasion, eventDate, currency).run();
+    return json({ list: { id, title, description, visibility, occasion, eventDate, currency } }, 201, headers);
   }
 
   const listMatch = url.pathname.match(/^\/api\/lists\/([0-9a-f-]{36})$/i);
