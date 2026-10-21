@@ -1,0 +1,47 @@
+name: Wishly production Worker typecheck
+
+on:
+  pull_request:
+    paths:
+      - "worker/**"
+      - "wrangler.worker.toml"
+      - ".github/workflows/wishly-worker-typecheck.yml"
+  push:
+    branches:
+      - production-worker-deploy
+    paths:
+      - "worker/**"
+      - "wrangler.worker.toml"
+      - ".github/workflows/wishly-worker-typecheck.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wishly-worker-typecheck-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: TypeScript typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Audit dependency advisories
+        run: |
+          npm audit --json > /tmp/wishly-npm-audit.json || true
+          node -e 'const a=require("/tmp/wishly-npm-audit.json"); for (const [name,v] of Object.entries(a.vulnerabilities||{})) console.log(`${v.severity.toUpperCase()} ${name}: direct=${v.isDirect}, range=${v.range}, fix=${JSON.stringify(v.fixAvailable)}`); console.log(`Totals: ${JSON.stringify(a.metadata?.vulnerabilities||{})}`)'
+      - name: Enforce dependency security threshold
+        run: npm audit --audit-level=high
+      - name: Typecheck Worker
+        run: npm run typecheck
