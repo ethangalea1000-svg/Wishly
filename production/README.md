@@ -33,13 +33,19 @@ La CI a réussi pour les vérifications existantes, mais cela ne remplace pas de
 
 ## Développement local
 1. Copier `worker/.dev.vars.example` vers `worker/.dev.vars`; ne pas committer le second fichier.
-2. Dans `worker/`, exécuter :
+2. Dans `worker/`, copier `.dev.vars.example` vers `.dev.vars`, puis exécuter :
    ```sh
    npm install
    npm run db:migrate:local
    npm run dev
    ```
-3. Pour tester la Pages Function et le frontend ensemble, utiliser le serveur local Cloudflare Pages depuis la racine, avec une origine locale exacte et une base D1 locale. Vérifier les options de la version installée de Wrangler avant toute commande distante.
+3. Pour tester la Pages Function et le frontend ensemble sous Windows PowerShell, depuis la racine :
+   ```powershell
+   Copy-Item worker/.dev.vars.example .dev.vars
+   npx wrangler d1 migrations apply wishly-production-db --local --config wrangler.toml
+   npx wrangler pages dev production --var APP_ORIGIN:http://localhost:8788
+   ```
+   Le fichier `.dev.vars` reste local et ignoré par Git. Utilise seulement les migrations `--local` pendant le développement. Vérifie les options de la version de Wrangler installée avant toute commande distante.
 
 Ne lance pas `db:migrate:remote` avant d'avoir revérifié la cible D1 et créé une sauvegarde.
 
