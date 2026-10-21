@@ -291,7 +291,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
         .bind(new Date().toISOString(),listId,user.id).run();
       return json({ok:true,shareUrl:null},200,headers);
     }
-    const token=owned.share_token||randomToken();
+    const token=owned.share_token && owned.visibility === "unlisted" ? owned.share_token : randomToken();
     await env.DB.prepare("UPDATE wishlists SET share_token=?,visibility='unlisted',updated_at=? WHERE id=? AND owner_id=?")
       .bind(token,new Date().toISOString(),listId,user.id).run();
     await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
