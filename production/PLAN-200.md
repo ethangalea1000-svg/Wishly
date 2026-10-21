@@ -35,7 +35,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [x] Tests automatisés exécutés en CI pour la configuration, la santé, l'origine des mutations et le schéma SQL.
 - [x] Pages de brouillon confidentialité, conditions et mentions légales; elles restent à compléter et valider avant publication.
 - [x] Page 404 accessible de base.
-- [ ] Double confirmation de réservation, e-mail de vérification, récupération de compte, export/suppression RGPD et tests navigateur.
+- [ ] Double confirmation de réservation, e-mail de vérification, récupération de compte, politique de conservation RGPD et tests navigateur.
 - [ ] Validation de déploiement staging; aucune base D1 distante n'a été créée ni modifiée.
 
 ## Phase 1 — architecture et données (points 1–25)
