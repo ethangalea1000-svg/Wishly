@@ -86,6 +86,11 @@
             catch { notice("appNotice","Lien de partage : "+shareUrl); }
           } catch(error) { notice("appNotice",error.message,true); }
         });
+        actionButton("Désactiver le lien", "secondary", async () => {
+          if(!confirm("Désactiver le lien public actuel ? Les invités ne pourront plus ouvrir cette liste avec ce lien."))return;
+          try { await api("lists/"+encodeURIComponent(id)+"/share",{method:"POST",body:JSON.stringify({revoke:true})}); notice("appNotice","Lien de partage désactivé."); }
+          catch(error){notice("appNotice",error.message,true);}
+        });
         actionButton("Dupliquer", "secondary", async () => {
           try { const result=await api("lists/"+encodeURIComponent(id)+"/duplicate",{method:"POST",body:JSON.stringify({})}); notice("appNotice","Liste dupliquée."); state.selected=result.list.id; await loadLists(); }
           catch(error){notice("appNotice",error.message,true);}
