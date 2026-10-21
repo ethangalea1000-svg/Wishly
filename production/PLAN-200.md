@@ -40,28 +40,28 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 
 ## Phase 1 — architecture et données (points 1–25)
 - [ ] 1 API et architecture modulaire
-- [ ] 2 choix SQL documenté
-- [ ] 3 schéma utilisateurs
-- [ ] 4 schéma listes
-- [ ] 5 schéma cadeaux
-- [ ] 6 contrat REST
+- [x] 2 choix SQL documenté dans ARCHITECTURE.md
+- [x] 3 schéma utilisateurs
+- [x] 4 schéma listes
+- [x] 5 schéma cadeaux
+- [x] 6 contrat REST documenté
 - [ ] 7 temps réel si besoin confirmé
-- [ ] 8 routes dynamiques
-- [ ] 9 variables d'environnement
-- [ ] 10 erreurs centralisées
+- [x] 8 routes dynamiques
+- [x] 9 variables d'environnement et garde-fous de configuration
+- [x] 10 gestion d'erreur centralisée de base
 - [ ] 11 cache seulement après mesure
 - [ ] 12 limitation de débit durcie
 - [ ] 13 logs structurés et expurgés
 - [ ] 14 pagination cohérente
 - [ ] 15 validation partagée
-- [ ] 16 migrations versionnées
+- [x] 16 migrations versionnées
 - [ ] 17 files de tâches si besoin confirmé
-- [ ] 18 identifiants UUID
+- [x] 18 identifiants UUID
 - [ ] 19 compression gérée par la plateforme
-- [ ] 20 index SQL
+- [x] 20 index SQL
 - [ ] 21 reprise sur erreurs transitoires
 - [ ] 22 environnements dev/staging/prod séparés
-- [ ] 23 endpoint de santé
+- [x] 23 endpoint de santé
 - [ ] 24 stratégie de sauvegarde et restauration testée
 - [ ] 25 limites de ressources documentées
 
@@ -82,7 +82,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [ ] 39 expiration/révocation des sessions
 - [ ] 40 chiffrement des données sensibles
 - [ ] 41 erreurs non révélatrices
-- [ ] 42 prévention injections SQL
+- [x] 42 prévention des injections SQL via requêtes préparées
 - [ ] 43 politique de comptes inactifs
 - [x] 44 suppression/export du compte (cycle complet et politique de rétention encore à valider)
 - [ ] 45 historique de connexion respectueux de la vie privée
