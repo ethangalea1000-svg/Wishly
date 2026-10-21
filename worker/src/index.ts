@@ -160,6 +160,14 @@ async function handle(request: Request, env: Env): Promise<Response> {
       const session = await createSession(id, env);
       return json({ user: { id, email, displayName, role: "user" }, sessionToken: session.token, expiresAt: session.expires }, 201, headers);
     } catch {
+      // If account creation succeeded but session creation failed, remove the
+      // partial account. The generated ID is unique, so this cannot delete an
+      // existing account after an email uniqueness conflict.
+      try {
+        await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();
+      } catch {
+        // Preserve the generic registration error; do not leak database details.
+      }
       return reject("Impossible de créer le compte pour le moment.", 503);
     }
   }
