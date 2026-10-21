@@ -75,8 +75,13 @@ async function rateLimit(request: Request, env: Env, bucket: string, max = 12): 
   const row = await env.DB.prepare("SELECT count FROM rate_limits WHERE bucket_key=?").bind(key).first<{count:number}>();
   return (row?.count ?? 0) <= max;
 }
+function sessionTokenFromRequest(request: Request): string | undefined {
+  const authorization = request.headers.get("Authorization") || "";
+  const bearer = authorization.match(/^Bearer ([a-f0-9]{64})$/i)?.[1];
+  return bearer || parseCookies(request).get(SESSION_COOKIE);
+}
 async function getUser(request: Request, env: Env): Promise<SessionUser | null> {
-  const token = parseCookies(request).get(SESSION_COOKIE);
+  const token = sessionTokenFromRequest(request);
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
   const tokenHash = await sha256(`${env.SESSION_PEPPER}:${token}`);
   const row = await env.DB.prepare(
@@ -119,7 +124,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return new Response(null, { status: 204, headers: {
       "Access-Control-Allow-Origin": env.APP_ORIGIN,
       "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Credentials": "true",
       "Vary": "Origin"
     }});
@@ -161,7 +166,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
         .bind(id, email, displayName, hash, salt, PBKDF2_ITERATIONS).run();
       const session = await createSession(id, env);
       headers.append("Set-Cookie", cookie(session.token, Math.floor(SESSION_MS / 1000)));
-      return json({ user: { id, email, displayName, role: "user" } }, 201, headers);
+      return json({ user: { id, email, displayName, role: "user" }, sessionToken: session.token }, 201, headers);
     } catch {
       return fail("Impossible de créer le compte pour le moment.", 503);
     }
@@ -180,11 +185,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if (calculated !== user.password_hash) return fail("E-mail ou mot de passe incorrect.", 401);
     const session = await createSession(user.id, env);
     headers.append("Set-Cookie", cookie(session.token, Math.floor(SESSION_MS / 1000)));
-    return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role } }, 200, headers);
+    return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role }, sessionToken: session.token }, 200, headers);
   }
 
   if (url.pathname === "/api/auth/logout" && request.method === "POST") {
-    const token = parseCookies(request).get(SESSION_COOKIE);
+    const token = sessionTokenFromRequest(request);
     if (token) await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?")
       .bind(await sha256(`${env.SESSION_PEPPER}:${token}`)).run();
     headers.append("Set-Cookie", clearCookie());
