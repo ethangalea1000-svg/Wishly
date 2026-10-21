@@ -496,7 +496,10 @@ export default {
       let configuredOrigin: URL;
       try { configuredOrigin = new URL(env.APP_ORIGIN); }
       catch { return fail("Configuration serveur invalide.", 503); }
-      if (configuredOrigin.origin !== env.APP_ORIGIN || configuredOrigin.protocol !== "https:") {
+      const localHttp = configuredOrigin.protocol === "http:" &&
+        (configuredOrigin.hostname === "localhost" || configuredOrigin.hostname === "127.0.0.1");
+      if (configuredOrigin.origin !== env.APP_ORIGIN ||
+          (configuredOrigin.protocol !== "https:" && !localHttp)) {
         return fail("Configuration serveur invalide.", 503);
       }
       return await handle(request, env);
