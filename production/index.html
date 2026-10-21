@@ -58,7 +58,7 @@
           <form id="listForm">
             <div class="field"><label for="listTitle">Titre de la liste</label><input id="listTitle" maxlength="100" required placeholder="Ex. Anniversaire"></div>
             <div class="field"><label for="listDescription">Description (facultatif)</label><textarea id="listDescription" maxlength="2000" placeholder="Quelques détails…"></textarea></div>
-            <div class="field"><label for="visibility">Visibilité</label><select id="visibility"><option value="private">Privée</option><option value="unlisted">Partage par lien (à venir)</option><option value="public">Publique (à venir)</option></select><small class="muted">Pour le moment, l'accès aux listes reste réservé à ton compte.</small></div>
+            <div class="field"><label for="visibility">Visibilité</label><select id="visibility"><option value="private">Privée</option><option value="unlisted" disabled>Partage par lien — utilise le bouton « Partager » après création</option><option value="public" disabled>Publique (à venir)</option></select><small class="muted">Pour le moment, l'accès aux listes reste réservé à ton compte.</small></div>
             <button class="btn" type="submit">Créer la liste</button>
           </form>
         </aside>
