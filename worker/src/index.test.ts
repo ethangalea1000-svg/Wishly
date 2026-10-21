@@ -67,14 +67,14 @@ describe("Wishly Worker HTTP boundary", () => {
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
-  it("returns CORS headers on API errors for the approved origin", async () => {
+  it("returns CORS headers on authentication errors for the approved origin", async () => {
     const { env } = makeEnv();
     const response = await worker.fetch(new Request("https://api.example.test/api/not-a-route", {
       method: "GET",
       headers: { Origin: "https://ethangalea1000-svg.github.io" },
     }), env);
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(401);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://ethangalea1000-svg.github.io");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
