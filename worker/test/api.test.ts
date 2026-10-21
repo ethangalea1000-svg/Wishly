@@ -24,6 +24,18 @@ describe("Wishly API baseline security", () => {
     expect(response.status).toBe(503);
   });
 
+  it("allows an HTTP origin only for local development", async () => {
+    const localEnv = { ...env, APP_ORIGIN: "http://localhost:8788" } as Env;
+    const response = await api.fetch(new Request("http://localhost:8788/api/health"), localEnv);
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects non-local HTTP deployment origins", async () => {
+    const insecureEnv = { ...env, APP_ORIGIN: "http://wishly.example" } as Env;
+    const response = await api.fetch(new Request("http://wishly.example/api/health"), insecureEnv);
+    expect(response.status).toBe(503);
+  });
+
   it("answers the health check without exposing private data", async () => {
     const response = await api.fetch(new Request("https://wishly.example/api/health"), env);
     expect(response.status).toBe(200);
