@@ -427,6 +427,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if ("visibility" in body) {
       if(!["private","unlisted","public"].includes(String(body.visibility))) return fail("Visibilité invalide.");
       fields.push("visibility=?"); values.push(body.visibility);
+      if (body.visibility === "private") { fields.push("share_token=?"); values.push(null); }
     }
     if ("occasion" in body) {
       if(body.occasion!==null && (typeof body.occasion!=="string" || body.occasion.length>80)) return fail("Occasion invalide.");
