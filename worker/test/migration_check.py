@@ -34,10 +34,16 @@ def main():
 
     db.execute("INSERT INTO wishlist_items(id,wishlist_id,title,quantity) VALUES(?,?,?,?)", ("i1", "l1", "Gift", 1))
     db.execute("UPDATE wishlists SET share_token=? WHERE id=?", ("a" * 64, "l1"))
+    db.execute("INSERT INTO wishlists(id,owner_id,title) VALUES(?,?,?)", ("l2", "u1", "Second list"))
     try:
-        db.execute("UPDATE wishlists SET share_token=? WHERE id=?", ("a" * 64, "l1"))
+        db.execute("UPDATE wishlists SET share_token=? WHERE id=?", ("a" * 64, "l2"))
     except sqlite3.IntegrityError:
-        raise AssertionError("Updating the same unique token should not fail")
+        pass
+    else:
+        raise AssertionError("Unique share-token constraint did not reject a duplicate")
+
+    db.execute("DELETE FROM wishlists WHERE id=?", ("l1",))
+    assert db.execute("SELECT COUNT(*) FROM wishlist_items WHERE wishlist_id='l1'").fetchone()[0] == 0
     print(f"Validated {len(files)} migrations and core schema constraints.")
 
 if __name__ == "__main__":
