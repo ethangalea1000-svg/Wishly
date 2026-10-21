@@ -77,7 +77,7 @@ jobs:
               checker.close()
 
           if errors:
-              print("\\n".join(errors))
+              print("\n".join(errors))
               sys.exit(1)
           print(f"Validated local href/src references in {len(html_files)} HTML pages.")
           PY
