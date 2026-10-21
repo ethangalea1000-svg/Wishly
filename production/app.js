@@ -178,10 +178,10 @@
           const statusLabel=document.createElement("label");statusLabel.textContent="Statut du cadeau ";
           const statusSelect=document.createElement("select");
           [["wanted","À trouver"],["reserved","Réservé"],["purchased","Acheté"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;statusSelect.append(option);});
-          statusSelect.value=item.status||"wanted";
+          statusSelect.value=item.status||"wanted";statusSelect.dataset.savedStatus=statusSelect.value;
           statusSelect.addEventListener("change",async()=>{
-            try{await api("lists/"+encodeURIComponent(id)+"/items/"+encodeURIComponent(item.id),{method:"PATCH",body:JSON.stringify({status:statusSelect.value})});notice("appNotice","Statut mis à jour.");}
-            catch(error){statusSelect.value=item.status||"wanted";notice("appNotice",error.message,true);}
+            try{await api("lists/"+encodeURIComponent(id)+"/items/"+encodeURIComponent(item.id),{method:"PATCH",body:JSON.stringify({status:statusSelect.value})});statusSelect.dataset.savedStatus=statusSelect.value;notice("appNotice","Statut mis à jour.");}
+            catch(error){statusSelect.value=statusSelect.dataset.savedStatus||"wanted";notice("appNotice",error.message,true);}
           });
           statusLabel.append(statusSelect);card.append(statusLabel);
           itemContainer.append(card);
