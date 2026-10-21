@@ -11,7 +11,7 @@ Base : même origine que le frontend, préfixe `/api`. Les requêtes JSON doiven
 | POST | `/api/auth/logout` | Origine exacte | Révoque la session courante et efface le cookie |
 | GET | `/api/auth/me` | Session | Retourne le profil de session |
 | GET | `/api/account/export` | Session | Export JSON des données du compte, listes et cadeaux |
-| DELETE | `/api/account` | Session + mot de passe + confirmation e-mail | Supprime le compte et les données associées |
+| DELETE | `/api/account` | Session + mot de passe + saisie de l'adresse du compte | Supprime le compte et les données associées |
 
 ## Listes
 | Méthode | Route | Description |
