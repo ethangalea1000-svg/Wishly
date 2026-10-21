@@ -33,6 +33,14 @@ def main():
         raise AssertionError("Quantity constraint did not reject zero")
 
     db.execute("INSERT INTO wishlist_items(id,wishlist_id,title,quantity) VALUES(?,?,?,?)", ("i1", "l1", "Gift", 1))
+    db.execute("INSERT INTO wishlist_items(id,wishlist_id,title,url) VALUES(?,?,?,?)", ("url-one", "l1", "Gift one", "https://shop.test/item"))
+    try:
+        db.execute("INSERT INTO wishlist_items(id,wishlist_id,title,url) VALUES(?,?,?,?)", ("url-two", "l1", "Gift two", "https://shop.test/item"))
+    except sqlite3.IntegrityError:
+        pass
+    else:
+        raise AssertionError("Duplicate URL constraint did not reject a duplicate")
+
     db.execute("UPDATE wishlists SET share_token=? WHERE id=?", ("a" * 64, "l1"))
     db.execute("INSERT INTO wishlists(id,owner_id,title) VALUES(?,?,?)", ("l2", "u1", "Second list"))
     try:
