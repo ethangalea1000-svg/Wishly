@@ -189,7 +189,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role } }, 200, headers);
   }
 
-  const publicListMatch = url.pathname.match(/^\\/api\\/shared\\/([a-f0-9]{64})$/);
+  const publicListMatch = url.pathname.match(/^\/api\/shared\/([a-f0-9]{64})$/);
   if (publicListMatch && request.method === "GET") {
     const list = await env.DB.prepare(
       "SELECT id,title,description,occasion,event_date,currency FROM wishlists WHERE share_token=? AND visibility IN ('public','unlisted') AND archived_at IS NULL"
@@ -201,7 +201,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const items = result.results.map((item:any)=>({...item,remaining_quantity:Math.max(0,Number(item.quantity)-Number(item.reserved_quantity)),is_fully_reserved:Number(item.reserved_quantity)>=Number(item.quantity)}));
     return json({list,items},200,headers);
   }
-  const publicReserveMatch=url.pathname.match(/^\\/api\\/shared\\/([a-f0-9]{64})\\/items\\/([0-9a-f-]{36})\\/reservations$/i);
+  const publicReserveMatch=url.pathname.match(/^\/api\/shared\/([a-f0-9]{64})\/items\/([0-9a-f-]{36})\/reservations$/i);
   if(publicReserveMatch && request.method==="POST"){
     if(!(await rateLimit(request,env,"guest-reservation",15)))return fail("Trop de tentatives. Réessaie plus tard.",429);
     const list=await env.DB.prepare("SELECT id FROM wishlists WHERE share_token=? AND visibility IN ('public','unlisted') AND archived_at IS NULL")
@@ -224,7 +224,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       .bind(randomId(),"reservation.create","reservation",reservationId).run();
     return json({ok:true,reservationId,cancellationToken:cancelToken,message:"Garde ce code pour annuler ta réservation."},201,headers);
   }
-  const cancelMatch=url.pathname.match(/^\\/api\\/reservations\\/([0-9a-f-]{36})\\/cancel$/i);
+  const cancelMatch=url.pathname.match(/^\/api\/reservations\/([0-9a-f-]{36})\/cancel$/i);
   if(cancelMatch && request.method==="POST"){
     const body=await bodyJson(request);
     const cancelToken=typeof body?.cancellationToken==="string"?body.cancellationToken:"";
@@ -241,7 +241,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const user = await getUser(request, env);
   if (!user) return fail("Authentification requise.", 401);
 
-  const shareOwnerMatch=url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})\\/share$/i);
+  const shareOwnerMatch=url.pathname.match(/^\/api\/lists\/([0-9a-f-]{36})\/share$/i);
   if(shareOwnerMatch && request.method==="POST"){
     const listId=shareOwnerMatch[1];
     const owned=await env.DB.prepare("SELECT id,share_token,visibility FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id)
@@ -324,7 +324,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
 
 
-  const listAction = url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})\\/(archive|duplicate)$/i);
+  const listAction = url.pathname.match(/^\/api\/lists\/([0-9a-f-]{36})\/(archive|duplicate)$/i);
   if (listAction && listAction[2].toLowerCase() === "archive" && request.method === "POST") {
     const listId = listAction[1];
     const owned = await env.DB.prepare("SELECT id,archived_at FROM wishlists WHERE id=? AND owner_id=?")
@@ -353,7 +353,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ list:{id:newId,title:newTitle,description:source.description,visibility:"private"} },201,headers);
   }
 
-  const listResource = url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})$/i);
+  const listResource = url.pathname.match(/^\/api\/lists\/([0-9a-f-]{36})$/i);
   if (listResource && request.method === "PATCH") {
     const listId = listResource[1];
     const body = await bodyJson(request);
@@ -380,7 +380,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       fields.push("occasion=?"); values.push(body.occasion);
     }
     if ("eventDate" in body) {
-      if(body.eventDate!==null && (typeof body.eventDate!=="string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(body.eventDate) || Number.isNaN(Date.parse(body.eventDate)))) return fail("Date invalide.");
+      if(body.eventDate!==null && (typeof body.eventDate!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.eventDate) || Number.isNaN(Date.parse(body.eventDate)))) return fail("Date invalide.");
       fields.push("event_date=?"); values.push(body.eventDate);
     }
     if ("currency" in body) {
@@ -405,7 +405,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ok:true},200,headers);
   }
 
-  const itemResource=url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})\\/items\\/([0-9a-f-]{36})$/i);
+  const itemResource=url.pathname.match(/^\/api\/lists\/([0-9a-f-]{36})\/items\/([0-9a-f-]{36})$/i);
   if(itemResource && request.method==="PATCH"){
     const [,listId,itemId]=itemResource;
     const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
