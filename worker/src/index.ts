@@ -124,7 +124,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
     headers.set("Access-Control-Allow-Credentials", "true");
   }
   if (!url.pathname.startsWith("/api/")) return fail("Route introuvable.", 404);
-  if (request.method !== "GET" && request.method !== "HEAD" && !originAllowed(request, env)) return fail("Origine non autorisée.", 403);
+  const mutation = request.method !== "GET" && request.method !== "HEAD";
+  if (mutation && request.headers.get("Origin") !== env.APP_ORIGIN) return fail("Origine non autorisée.", 403);
 
   if (url.pathname === "/api/health" && request.method === "GET") {
     try {
