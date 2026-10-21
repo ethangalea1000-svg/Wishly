@@ -24,6 +24,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 
 ## Phase 0.1 — fonctionnalités livrées depuis la première version
 - [x] Lecture et modification des listes, suppression contrôlée, archivage/restauration et duplication.
+- [x] Modification des détails de liste depuis l'interface, recherche et tri des cadeaux.
 - [x] Modification et suppression de cadeaux avec contrôle de propriété.
 - [x] Champs cadeaux : catégorie, prix estimé, quantité, priorité, lien et description.
 - [x] Création/révocation de liens secrets de partage.
@@ -129,7 +130,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [ ] 61 tailles/options
 - [x] 62 liens HTTP(S) validés et normalisés
 - [x] 63 descriptions et notes de cadeaux
-- [ ] 64 tri/filtres
+- [x] 64 recherche, tri et filtres de cadeaux de base
 - [x] 65 statut de cadeau modifiable dans l'interface
 - [ ] 66 contributions invitées
 - [ ] 67 statistiques agrégées
