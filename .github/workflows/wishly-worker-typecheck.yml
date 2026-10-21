@@ -1,0 +1,41 @@
+name: Wishly production Worker typecheck
+
+on:
+  pull_request:
+    paths:
+      - "worker/**"
+      - "wrangler.worker.toml"
+      - ".github/workflows/wishly-worker-typecheck.yml"
+  push:
+    branches:
+      - production-worker-deploy
+    paths:
+      - "worker/**"
+      - "wrangler.worker.toml"
+      - ".github/workflows/wishly-worker-typecheck.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wishly-worker-typecheck-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: TypeScript typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck Worker
+        run: npm run typecheck
