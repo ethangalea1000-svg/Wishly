@@ -8,7 +8,7 @@ APP_ORIGIN = "https://REPLACE-WITH-YOUR-PRODUCTION-DOMAIN"
 [[d1_databases]]
 binding = "DB"
 database_name = "wishly-production-db"
-database_id = "REPLACE_WITH_NEW_PRODUCTION_D1_DATABASE_ID"
+database_id = "3287b8ce-2e1d-4ce0-865d-77706ba49388"
 migrations_dir = "worker/migrations"
 
 # This configuration is a template. Replace both placeholders before deployment.
