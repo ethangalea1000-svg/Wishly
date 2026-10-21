@@ -130,7 +130,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [x] 62 liens HTTP(S) validés et normalisés
 - [x] 63 descriptions et notes de cadeaux
 - [ ] 64 tri/filtres
-- [x] 65 statut de cadeau modifiable via API; intégration UI à compléter
+- [x] 65 statut de cadeau modifiable dans l'interface
 - [ ] 66 contributions invitées
 - [ ] 67 statistiques agrégées
 - [ ] 68 notifications
