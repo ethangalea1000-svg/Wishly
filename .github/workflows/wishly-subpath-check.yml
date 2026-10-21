@@ -1,0 +1,83 @@
+name: Wishly GitHub Pages subpath checks
+
+on:
+  pull_request:
+    paths:
+      - "wishly-app/**"
+      - ".github/workflows/wishly-subpath-check.yml"
+  push:
+    branches:
+      - publish-wishly-app-subpath
+    paths:
+      - "wishly-app/**"
+      - ".github/workflows/wishly-subpath-check.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wishly-subpath-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check wishly-app/app.js
+          node --check wishly-app/shared.js
+      - name: Validate local HTML links for project subpath hosting
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          import sys
+
+          root = Path("wishly-app")
+          errors = []
+
+          class Checker(HTMLParser):
+              def __init__(self, file):
+                  super().__init__(convert_charrefs=True)
+                  self.file = file
+
+              def handle_starttag(self, tag, attrs):
+                  for key, value in attrs:
+                      if key not in ("href", "src") or not value:
+                          continue
+                      value = value.strip()
+                      if value.startswith(("#", "mailto:", "tel:", "data:", "javascript:")):
+                          continue
+                      parsed = urlsplit(value)
+                      if parsed.scheme or parsed.netloc:
+                          continue
+                      if value.startswith("/"):
+                          errors.append(f"{self.file}: root-absolute {key}={value!r} breaks /Wish ly/ subpath hosting".replace("/Wish ly/", "/Wish ly/"))
+                          continue
+                      target = (self.file.parent / parsed.path) if parsed.path else self.file
+                      if parsed.path.endswith("/"):
+                          target = target / "index.html"
+                      if parsed.path and not target.exists():
+                          errors.append(f"{self.file}: missing local target {value!r} -> {target}")
+
+          html_files = sorted(root.glob("*.html"))
+          if not html_files:
+              errors.append("No wishly-app HTML files found")
+          for file in html_files:
+              checker = Checker(file)
+              checker.feed(file.read_text(encoding="utf-8"))
+              checker.close()
+
+          if errors:
+              print("\\n".join(errors))
+              sys.exit(1)
+          print(f"Validated local href/src references in {len(html_files)} HTML pages.")
+          PY
