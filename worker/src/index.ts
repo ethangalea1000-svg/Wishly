@@ -102,9 +102,6 @@ function cleanText(value: unknown, max: number): string | null {
 function normalizeGiftUrl(value: string): string {
   const parsed = new URL(value);
   parsed.hash = "";
-  for (const key of Array.from(parsed.searchParams.keys())) {
-    if (/^(utm_.+|fbclid|gclid|mc_cid|mc_eid)$/i.test(key)) parsed.searchParams.delete(key);
-  }
   parsed.hostname = parsed.hostname.toLowerCase();
   parsed.searchParams.sort();
   return parsed.toString();
