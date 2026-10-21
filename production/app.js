@@ -136,6 +136,15 @@
           giftActions.append(editGift,deleteGift); card.append(giftActions);
           if (item.url) { const a = document.createElement("a"); a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Ouvrir le lien du cadeau"; card.append(a); }
           const meta = document.createElement("p"); meta.className = "muted"; meta.textContent = "Quantité : " + item.quantity + " · Priorité : " + item.priority + (item.price_minor == null ? "" : " · Prix : " + new Intl.NumberFormat("fr-FR", {style:"currency",currency:item.currency || list.currency || "EUR"}).format(item.price_minor / 100)); card.append(meta);
+          const statusLabel=document.createElement("label");statusLabel.textContent="Statut du cadeau ";
+          const statusSelect=document.createElement("select");
+          [["wanted","À trouver"],["reserved","Réservé"],["purchased","Acheté"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;statusSelect.append(option);});
+          statusSelect.value=item.status||"wanted";
+          statusSelect.addEventListener("change",async()=>{
+            try{await api("lists/"+encodeURIComponent(id)+"/items/"+encodeURIComponent(item.id),{method:"PATCH",body:JSON.stringify({status:statusSelect.value})});notice("appNotice","Statut mis à jour.");}
+            catch(error){statusSelect.value=item.status||"wanted";notice("appNotice",error.message,true);}
+          });
+          statusLabel.append(statusSelect);card.append(statusLabel);
           detail.append(card);
         });
         const form = document.createElement("form"); form.id = "itemForm"; form.style.marginTop = "1.4rem";
