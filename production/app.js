@@ -171,6 +171,17 @@
     $("logoutBtn").addEventListener("click", async () => {
       try { await api("auth/logout", { method:"POST", body:JSON.stringify({}) }); } finally { showAuth(); }
     });
+    $("deleteAccountBtn").addEventListener("click", async () => {
+      if(!confirm("Supprimer définitivement ton compte, tes listes et tes cadeaux ? Cette action est irréversible."))return;
+      const password=prompt("Pour confirmer, saisis ton mot de passe.");
+      if(password===null||!password)return;
+      const confirmEmail=prompt("Saisis l'adresse e-mail de ton compte pour confirmer.");
+      if(confirmEmail===null)return;
+      try {
+        await api("account",{method:"DELETE",body:JSON.stringify({password,confirmEmail})});
+        showAuth();notice("notice","Le compte et les listes associées ont été supprimés.");
+      } catch(error){notice("appNotice",error.message,true);}
+    });
     $("exportBtn").addEventListener("click", async () => {
       try {
         const data=await api("account/export");
