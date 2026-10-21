@@ -2,14 +2,16 @@
     "use strict";
     const $ = (id) => document.getElementById(id);
     const state = { mode: "login", user: null, lists: [], selected: null };
+    const API_BASE_URL = "https://wishly-production-api.ethan-galea1000.workers.dev";
+    const TOKEN_KEY = "wishly_session_token";
     const notice = (id, message = "", error = false) => {
       const node = $(id); node.textContent = message; node.classList.toggle("hidden", !message); node.classList.toggle("error", error);
     };
     const api = async (path, options = {}) => {
-      const response = await fetch("/api/" + path.replace(/^\//, ""), {
-        credentials: "same-origin",
+      const token = sessionStorage.getItem(TOKEN_KEY);
+      const response = await fetch(API_BASE_URL + "/api/" + path.replace(/^\//, ""), {
         ...options,
-        headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) }
+        headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(token ? { "Authorization": "Bearer " + token } : {}), ...(options.headers || {}) }
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Une erreur est survenue. Réessaie.");
@@ -83,7 +85,7 @@
         actionButton("Partager", "secondary", async () => {
           try {
             const result=await api("lists/"+encodeURIComponent(id)+"/share",{method:"POST",body:JSON.stringify({})});
-            const shareUrl=location.origin+"/shared/"+result.shareToken;
+            const shareUrl=new URL("./shared.html?token="+encodeURIComponent(result.shareToken),location.href).href;
             try { await navigator.clipboard.writeText(shareUrl); notice("appNotice","Lien de partage copié."); }
             catch { notice("appNotice","Lien de partage : "+shareUrl); }
           } catch(error) { notice("appNotice",error.message,true); }
@@ -212,6 +214,8 @@
       if (state.mode === "register") body.displayName = $("displayName").value;
       try {
         const result = await api("auth/" + (state.mode === "register" ? "register" : "login"), { method:"POST", body:JSON.stringify(body) });
+        if (!result.sessionToken) throw new Error("La session n’a pas pu être créée. Réessaie.");
+        sessionStorage.setItem(TOKEN_KEY, result.sessionToken);
         showApp(result.user);
       } catch (error) { notice("notice", error.message, true); }
     });
@@ -224,7 +228,7 @@
       } catch (error) { notice("appNotice", error.message, true); }
     });
     $("logoutBtn").addEventListener("click", async () => {
-      try { await api("auth/logout", { method:"POST", body:JSON.stringify({}) }); } finally { showAuth(); }
+      try { await api("auth/logout", { method:"POST", body:JSON.stringify({}) }); } finally { sessionStorage.removeItem(TOKEN_KEY); showAuth(); }
     });
     $("deleteAccountBtn").addEventListener("click", async () => {
       if(!confirm("Supprimer définitivement ton compte, tes listes et tes cadeaux ? Cette action est irréversible."))return;
@@ -234,7 +238,7 @@
       if(confirmEmail===null)return;
       try {
         await api("account",{method:"DELETE",body:JSON.stringify({password,confirmEmail})});
-        showAuth();notice("notice","Le compte et les listes associées ont été supprimés.");
+        sessionStorage.removeItem(TOKEN_KEY);showAuth();notice("notice","Le compte et les listes associées ont été supprimés.");
       } catch(error){notice("appNotice",error.message,true);}
     });
     $("exportBtn").addEventListener("click", async () => {
@@ -249,5 +253,5 @@
     });
 
     setMode("login");
-    api("auth/me").then(result => showApp(result.user)).catch(() => showAuth());
+    api("auth/me").then(result => showApp(result.user)).catch(() => { sessionStorage.removeItem(TOKEN_KEY); showAuth(); });
   })();
