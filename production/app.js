@@ -31,6 +31,8 @@
       $("authView").classList.add("hidden");
       $("appView").classList.remove("hidden");
       $("logoutBtn").classList.remove("hidden");
+      $("exportBtn").classList.remove("hidden");
+      $("deleteAccountBtn").classList.remove("hidden");
       $("accountLabel").textContent = user.displayName || user.email;
       $("welcomeTitle").textContent = "Bonjour " + (user.displayName || "et bienvenue");
       loadLists();
@@ -38,7 +40,7 @@
     const showAuth = () => {
       state.user = null; state.lists = []; state.selected = null;
       $("authView").classList.remove("hidden"); $("appView").classList.add("hidden");
-      $("logoutBtn").classList.add("hidden"); $("accountLabel").textContent = "";
+      $("logoutBtn").classList.add("hidden"); $("exportBtn").classList.add("hidden"); $("deleteAccountBtn").classList.add("hidden"); $("accountLabel").textContent = "";
     };
     async function loadLists() {
       try {
@@ -169,6 +171,17 @@
     $("logoutBtn").addEventListener("click", async () => {
       try { await api("auth/logout", { method:"POST", body:JSON.stringify({}) }); } finally { showAuth(); }
     });
+    $("exportBtn").addEventListener("click", async () => {
+      try {
+        const data=await api("account/export");
+        const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});
+        const objectUrl=URL.createObjectURL(blob);const link=document.createElement("a");
+        link.href=objectUrl;link.download="wishly-export-"+new Date().toISOString().slice(0,10)+".json";
+        document.body.append(link);link.click();link.remove();URL.revokeObjectURL(objectUrl);
+        notice("appNotice","Export téléchargé. Conserve ce fichier dans un endroit sûr.");
+      } catch(error){notice("appNotice",error.message,true);}
+    });
+
     setMode("login");
     api("auth/me").then(result => showApp(result.user)).catch(() => showAuth());
   })();
