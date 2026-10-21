@@ -42,3 +42,48 @@ GET https://<deployed-worker-host>/api/health
 ```
 
 The expected response is `{"status":"ok","service":"wishly-api"}`. A health response alone does not prove registration, login, or wishlist flows work.
+
+## Windows PowerShell deployment steps
+
+Run these commands from the repository root on your own PC. They deploy only the Worker described by `wrangler.worker.toml`; they do not publish the GitHub Pages frontend or run database migrations.
+
+1. Authenticate Wrangler to your Cloudflare account:
+
+   ```powershell
+   npx wrangler login
+   ```
+
+2. Generate a private random secret locally. Do not paste it into ChatGPT, GitHub, an issue, or a commit:
+
+   ```powershell
+   $pepper = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+   $pepper
+   ```
+
+3. Start the secret prompt:
+
+   ```powershell
+   npx wrangler secret put SESSION_PEPPER --config wrangler.worker.toml
+   ```
+
+   Paste the value printed by PowerShell into Wrangler's secret prompt. After Wrangler confirms it, clear the local variable:
+
+   ```powershell
+   Remove-Variable pepper
+   ```
+
+4. Deploy the isolated Worker:
+
+   ```powershell
+   npx wrangler deploy --config wrangler.worker.toml
+   ```
+
+5. Copy the exact `workers.dev` URL reported by Wrangler and test:
+
+   ```powershell
+   Invoke-RestMethod "https://<exact-worker-host>/api/health"
+   ```
+
+   Expected JSON: `status = ok`, `service = wishly-api`. Do not guess the hostname; if it differs from the frontend's configured URL, update both `production/app.js` and `production/shared.js` before publishing the frontend.
+
+A successful health check is only the first gate. Test registration/login/logout, list and gift CRUD, sharing, guest reservation/cancellation, and account export/deletion before publishing `wishly-app/`. Do not rerun the already-applied D1 migrations.
