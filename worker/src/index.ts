@@ -331,8 +331,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const itemCollection = url.pathname.match(/^\/api\/lists\/([0-9a-f-]{36})\/items$/i);
   if (itemCollection && request.method === "POST") {
     const listId = itemCollection[1];
-    const owned = await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?")
-      .bind(listId, user.id).first();
+    const owned = await env.DB.prepare("SELECT id,currency FROM wishlists WHERE id=? AND owner_id=?")
+      .bind(listId, user.id).first<{id:string;currency:string}>();
     if (!owned) return fail("Liste introuvable.", 404);
     const body = await bodyJson(request);
     const title = cleanText(body?.title, 160);
@@ -350,13 +350,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const quantity = Number.isInteger(body?.quantity) ? Number(body?.quantity) : 1;
     const priority = Number.isInteger(body?.priority) ? Number(body?.priority) : 2;
     const priceMinor = body?.priceMinor == null ? null : Number(body.priceMinor);
+    const currency = typeof body?.currency === "string" ? body.currency : owned.currency;
+    if (!/^[A-Z]{3}$/.test(currency)) return fail("Devise invalide.");
     if (quantity < 1 || quantity > 99 || priority < 1 || priority > 3) return fail("Quantité ou priorité invalide.");
     if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 0 || priceMinor > 100000000)) return fail("Prix invalide.");
     const id = randomId();
     await env.DB.prepare(
-      "INSERT INTO wishlist_items(id,wishlist_id,title,url,description,category,price_minor,quantity,priority) VALUES(?,?,?,?,?,?,?,?,?)"
-    ).bind(id, listId, title, urlValue, description, category, priceMinor, quantity, priority).run();
-    return json({ item: { id, wishlistId: listId, title, url: urlValue, description, category, priceMinor, quantity, priority, status: "wanted" } }, 201, headers);
+      "INSERT INTO wishlist_items(id,wishlist_id,title,url,description,category,price_minor,currency,quantity,priority) VALUES(?,?,?,?,?,?,?,?,?,?)"
+    ).bind(id, listId, title, urlValue, description, category, priceMinor, currency, quantity, priority).run();
+    return json({ item: { id, wishlistId: listId, title, url: urlValue, description, category, priceMinor, currency, quantity, priority, status: "wanted" } }, 201, headers);
   }
 
 
