@@ -16,14 +16,14 @@ This is a preliminary engineering checklist, not a certification or penetration 
 1. Add automated unit/integration tests for signup, login, logout, expiry, account isolation, invalid input, rate limits, and SQL migration.
 2. Complete a CSRF threat model and test browser cookie behavior in the actual hosting topology.
 3. Serve the frontend and API from the same origin or a verified same-site setup. Do not assume cross-site cookies from a GitHub Pages origin to a workers.dev API will work reliably.
-4. Add email verification, password reset with single-use expiring tokens, and account deletion/export flows.
+4. Email verification and password reset with single-use expiring tokens are still missing; account export/deletion endpoints exist but require integration tests and a retention-policy review.
 5. Add an explicit account/session revocation UI and scheduled cleanup for expired sessions/rate-limit rows.
 6. Add strict response security headers including a tested CSP at the frontend; the API cannot secure the HTML pages by itself.
 7. Validate public item image URLs and prevent tracking/privacy leaks; if server-side URL fetching is added, implement SSRF protections and block private/reserved IP ranges and redirects to them.
 8. Review error paths and status codes for account enumeration; consider a stable generic response policy.
 9. Benchmark PBKDF2 parameters on the deployed runtime and document migration strategy. Do not claim Argon2id unless implemented.
 10. Add audit log writes for privileged actions before implementing administration.
-11. Test migrations on a fresh disposable D1 database and verify backup restoration before any real data is introduced.
+11. The migration chain is tested against SQLite in CI; still test it on a fresh disposable D1 database and verify backup restoration before any real data is introduced.
 12. Perform independent security and privacy review before public launch.
 
 ## Data safety
@@ -31,4 +31,4 @@ This is a preliminary engineering checklist, not a certification or penetration 
 - Never commit SESSION_PEPPER, OAuth secrets, SMTP credentials, payment keys, or tokens.
 - The admin role must be granted only through a controlled operator process, never via public registration.
 - Do not log passwords, session cookies, guest contact details, or full private list content.
-- The starter schema includes reservations, but the guest reservation API is not implemented yet.
+- The guest reservation API exists with a quantity check and cancellation token; test concurrency, abuse controls, and the full guest journey before launch.
