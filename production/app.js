@@ -108,6 +108,11 @@
         });
         detail.append(actions);
         if (list.description) { const p = document.createElement("p"); p.className = "muted"; p.textContent = list.description; detail.append(p); }
+        const metadata=[];
+        if(list.occasion)metadata.push(list.occasion);
+        if(list.event_date)metadata.push(new Date(list.event_date+"T12:00:00").toLocaleDateString("fr-FR"));
+        if(list.currency)metadata.push(list.currency);
+        if(metadata.length){const p=document.createElement("p");p.className="muted";p.textContent=metadata.join(" · ");detail.append(p);}
         const itemTitle = document.createElement("h2"); itemTitle.textContent = "Idées de cadeaux"; itemTitle.style.marginTop = "1.4rem"; detail.append(itemTitle);
         if (!items.length) { const empty = document.createElement("div"); empty.className = "empty"; empty.textContent = "Ajoute ta première idée ci-dessous."; detail.append(empty); }
         items.forEach(item => {
@@ -130,17 +135,18 @@
           });
           giftActions.append(editGift,deleteGift); card.append(giftActions);
           if (item.url) { const a = document.createElement("a"); a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Ouvrir le lien du cadeau"; card.append(a); }
-          const meta = document.createElement("p"); meta.className = "muted"; meta.textContent = "Quantité : " + item.quantity + " · Priorité : " + item.priority; card.append(meta);
+          const meta = document.createElement("p"); meta.className = "muted"; meta.textContent = "Quantité : " + item.quantity + " · Priorité : " + item.priority + (item.price_minor == null ? "" : " · Prix : " + new Intl.NumberFormat("fr-FR", {style:"currency",currency:item.currency || list.currency || "EUR"}).format(item.price_minor / 100)); card.append(meta);
           detail.append(card);
         });
         const form = document.createElement("form"); form.id = "itemForm"; form.style.marginTop = "1.4rem";
-        form.innerHTML = '<h2>Ajouter une idée</h2><div class="field"><label for="itemTitle">Nom du cadeau</label><input id="itemTitle" maxlength="160" required></div><div class="field"><label for="itemUrl">Lien (facultatif)</label><input id="itemUrl" type="url" maxlength="2048" placeholder="https://…"></div><div class="field"><label for="itemDescription">Description (facultatif)</label><textarea id="itemDescription" maxlength="2000"></textarea></div><div class="field"><label for="itemCategory">Catégorie (facultatif)</label><input id="itemCategory" maxlength="80" placeholder="Ex. Lecture, technologie…"></div><div class="row"><div class="field" style="flex:1"><label for="itemPrice">Prix estimé en euros (facultatif)</label><input id="itemPrice" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="0,00"></div><div class="field" style="flex:1"><label for="itemQuantity">Quantité</label><input id="itemQuantity" type="number" min="1" max="99" value="1" required></div><div class="field" style="flex:1"><label for="itemPriority">Priorité</label><select id="itemPriority"><option value="1">Basse</option><option value="2" selected>Normale</option><option value="3">Haute</option></select></div></div><button class="btn" type="submit">Ajouter le cadeau</button>';
+        form.innerHTML = '<h2>Ajouter une idée</h2><div class="field"><label for="itemTitle">Nom du cadeau</label><input id="itemTitle" maxlength="160" required></div><div class="field"><label for="itemUrl">Lien (facultatif)</label><input id="itemUrl" type="url" maxlength="2048" placeholder="https://…"></div><div class="field"><label for="itemDescription">Description (facultatif)</label><textarea id="itemDescription" maxlength="2000"></textarea></div><div class="field"><label for="itemCategory">Catégorie (facultatif)</label><input id="itemCategory" maxlength="80" placeholder="Ex. Lecture, technologie…"></div><div class="row"><div class="field" style="flex:1"><label for="itemPrice">Prix estimé (facultatif)</label><input id="itemPrice" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="0,00"></div><div class="field" style="flex:1"><label for="itemQuantity">Quantité</label><input id="itemQuantity" type="number" min="1" max="99" value="1" required></div><div class="field" style="flex:1"><label for="itemPriority">Priorité</label><select id="itemPriority"><option value="1">Basse</option><option value="2" selected>Normale</option><option value="3">Haute</option></select></div></div><button class="btn" type="submit">Ajouter le cadeau</button>';
+        $("itemPrice").previousElementSibling.textContent = "Prix estimé en " + (list.currency || "EUR") + " (facultatif)";
         form.addEventListener("submit", async event => {
           event.preventDefault();
           try {
             await api("lists/" + encodeURIComponent(id) + "/items", { method:"POST", body:JSON.stringify({
               title:$("itemTitle").value, url:$("itemUrl").value || null, description:$("itemDescription").value, category:$("itemCategory").value || null,
-              priceMinor:$("itemPrice").value === "" ? null : Math.round(Number($("itemPrice").value) * 100),
+              priceMinor:$("itemPrice").value === "" ? null : Math.round(Number($("itemPrice").value) * 100), currency:list.currency || "EUR",
               quantity:Number($("itemQuantity").value), priority:Number($("itemPriority").value)
             })});
             notice("appNotice", "Cadeau ajouté."); await openList(id);
@@ -163,8 +169,8 @@
     $("listForm").addEventListener("submit", async event => {
       event.preventDefault();
       try {
-        const result = await api("lists", { method:"POST", body:JSON.stringify({ title:$("listTitle").value, description:$("listDescription").value, visibility:$("visibility").value }) });
-        $("listTitle").value = ""; $("listDescription").value = "";
+        const result = await api("lists", { method:"POST", body:JSON.stringify({ title:$("listTitle").value, description:$("listDescription").value, visibility:$("visibility").value, occasion:$("listOccasion").value || null, eventDate:$("listEventDate").value || null, currency:$("listCurrency").value }) });
+        $("listTitle").value = ""; $("listDescription").value = ""; $("listOccasion").value = ""; $("listEventDate").value = "";
         state.selected = result.list.id; notice("appNotice", "Liste créée."); await loadLists();
       } catch (error) { notice("appNotice", error.message, true); }
     });
