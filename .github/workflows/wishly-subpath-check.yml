@@ -60,7 +60,7 @@ jobs:
                       if parsed.scheme or parsed.netloc:
                           continue
                       if value.startswith("/"):
-                          errors.append(f"{self.file}: root-absolute {key}={value!r} breaks /Wish ly/ subpath hosting".replace("/Wish ly/", "/Wish ly/"))
+                          errors.append(f"{self.file}: root-absolute {key}={value!r} breaks /Wishly/ subpath hosting")
                           continue
                       target = (self.file.parent / parsed.path) if parsed.path else self.file
                       if parsed.path.endswith("/"):
