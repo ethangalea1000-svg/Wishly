@@ -18,8 +18,24 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [x] Sessions opaques en cookie HttpOnly/Secure/SameSite, jeton haché en base, expiration.
 - [x] Vérification d'origine pour les requêtes mutantes et limitation de débit initiale en D1.
 - [x] Configuration Cloudflare séparée, avec identifiant de base à remplacer avant tout déploiement.
-- [ ] Tests automatiques, revue sécurité indépendante et déploiement staging.
-- [ ] Frontend de production connecté à cette API.
+- [x] Tests de fumée API (configuration, santé, validation Origin) dans Vitest.
+- [x] Test automatisé des migrations SQL et contraintes de base avec SQLite en CI.
+- [ ] Tests d'intégration complets, revue sécurité indépendante et déploiement staging.
+
+## Phase 0.1 — fonctionnalités livrées depuis la première version
+- [x] Lecture et modification des listes, suppression contrôlée, archivage/restauration et duplication.
+- [x] Modification et suppression de cadeaux avec contrôle de propriété.
+- [x] Champs cadeaux : catégorie, prix estimé, quantité, priorité, lien et description.
+- [x] Création/révocation de liens secrets de partage.
+- [x] Page publique de liste partagée via lien secret.
+- [x] Réservation invité avec limite de quantité et code d'annulation à usage secret.
+- [x] L'annulation invité nécessite l'identifiant de réservation et le code secret; seul le hachage du code est conservé.
+- [x] Journal d'audit des opérations sensibles implémentées.
+- [x] Tests automatisés exécutés en CI pour la configuration, la santé, l'origine des mutations et le schéma SQL.
+- [x] Pages de brouillon confidentialité, conditions et mentions légales; elles restent à compléter et valider avant publication.
+- [x] Page 404 accessible de base.
+- [ ] Double confirmation de réservation, e-mail de vérification, récupération de compte, export/suppression RGPD et tests navigateur.
+- [ ] Validation de déploiement staging; aucune base D1 distante n'a été créée ni modifiée.
 
 ## Phase 1 — architecture et données (points 1–25)
 - [ ] 1 API et architecture modulaire
