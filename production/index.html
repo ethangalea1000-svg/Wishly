@@ -62,6 +62,9 @@
           <form id="listForm">
             <div class="field"><label for="listTitle">Titre de la liste</label><input id="listTitle" maxlength="100" required placeholder="Ex. Anniversaire"></div>
             <div class="field"><label for="listDescription">Description (facultatif)</label><textarea id="listDescription" maxlength="2000" placeholder="Quelques détails…"></textarea></div>
+            <div class="field"><label for="listOccasion">Occasion (facultatif)</label><input id="listOccasion" maxlength="80" placeholder="Ex. Anniversaire"></div>
+            <div class="field"><label for="listEventDate">Date de l’événement (facultatif)</label><input id="listEventDate" type="date"></div>
+            <div class="field"><label for="listCurrency">Devise</label><select id="listCurrency"><option value="EUR">EUR — euro</option><option value="USD">USD — dollar américain</option><option value="GBP">GBP — livre sterling</option><option value="CAD">CAD — dollar canadien</option><option value="CHF">CHF — franc suisse</option><option value="JPY">JPY — yen</option></select></div>
             <div class="field"><label for="visibility">Visibilité</label><select id="visibility"><option value="private">Privée</option><option value="unlisted" disabled>Partage par lien — utilise le bouton « Partager » après création</option><option value="public" disabled>Publique (à venir)</option></select><small class="muted">Pour le moment, l'accès aux listes reste réservé à ton compte.</small></div>
             <button class="btn" type="submit">Créer la liste</button>
           </form>
