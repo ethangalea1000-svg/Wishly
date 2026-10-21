@@ -15,11 +15,20 @@
         ...options,
         headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(token ? { "Authorization": "Bearer " + token } : {}), ...(options.headers || {}) }
         });
-      } catch {
-        throw new Error("Impossible de joindre le serveur Wishly. Vérifie que l’API est déployée et que la connexion fonctionne, puis réessaie.");
+      } catch (cause) {
+        const message = navigator.onLine === false
+          ? "Ton navigateur indique que tu es hors connexion. Vérifie ta connexion Internet, puis réessaie."
+          : "La requête n’a reçu aucune réponse de l’API Wishly. Vérifie la connexion, les extensions du navigateur et l’onglet Réseau de F12, puis réessaie.";
+        const error = new Error(message);
+        error.name = "NetworkError";
+        throw error;
       }
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "Une erreur est survenue. Réessaie.");
+      if (!response.ok) {
+        const error = new Error(payload.error || `Erreur HTTP ${response.status}. Réessaie.`);
+        error.status = response.status;
+        throw error;
+      }
       return payload;
     };
     const setMode = (mode) => {
@@ -214,15 +223,26 @@
     $("showLogin").addEventListener("click", () => setMode("login"));
     $("showRegister").addEventListener("click", () => setMode("register"));
     $("authForm").addEventListener("submit", async event => {
-      event.preventDefault(); notice("notice");
+      event.preventDefault();
+      if ($("authSubmit").disabled) return;
+      notice("notice");
+      const submitButton = $("authSubmit");
+      const originalLabel = state.mode === "register" ? "Créer mon compte" : "Se connecter";
       const body = { email:$("email").value, password:$("password").value };
       if (state.mode === "register") body.displayName = $("displayName").value;
+      submitButton.disabled = true;
+      submitButton.textContent = state.mode === "register" ? "Création en cours…" : "Connexion en cours…";
       try {
         const result = await api("auth/" + (state.mode === "register" ? "register" : "login"), { method:"POST", body:JSON.stringify(body) });
         if (!result.sessionToken) throw new Error("La session n’a pas pu être créée. Réessaie.");
         sessionStorage.setItem(TOKEN_KEY, result.sessionToken);
         showApp(result.user);
-      } catch (error) { notice("notice", error.message, true); }
+      } catch (error) {
+        notice("notice", error.message, true);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
+      }
     });
     $("listForm").addEventListener("submit", async event => {
       event.preventDefault();
@@ -257,6 +277,17 @@
       } catch(error){notice("appNotice",error.message,true);}
     });
 
+    window.addEventListener("offline", () => {
+      notice("notice", "Ton navigateur signale une perte de connexion Internet. Wishly réessaiera quand tu relanceras l’action.", true);
+    });
+    window.addEventListener("online", () => {
+      if (navigator.onLine) notice("notice", "Connexion Internet rétablie. Tu peux réessayer.", false);
+    });
+
     setMode("login");
-    api("auth/me").then(result => showApp(result.user)).catch(() => { sessionStorage.removeItem(TOKEN_KEY); showAuth(); });
+    api("auth/me").then(result => showApp(result.user)).catch(error => {
+      sessionStorage.removeItem(TOKEN_KEY);
+      showAuth();
+      if (error.status !== 401) notice("notice", error.message || "Impossible de vérifier la session. Réessaie.", true);
+    });
   })();
