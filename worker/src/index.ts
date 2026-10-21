@@ -99,6 +99,16 @@ function cleanText(value: unknown, max: number): string | null {
   const result = value.trim();
   return result.length > 0 && result.length <= max ? result : null;
 }
+function normalizeGiftUrl(value: string): string {
+  const parsed = new URL(value);
+  parsed.hash = "";
+  for (const key of Array.from(parsed.searchParams.keys())) {
+    if (/^(utm_.+|fbclid|gclid|mc_cid|mc_eid)$/i.test(key)) parsed.searchParams.delete(key);
+  }
+  parsed.hostname = parsed.hostname.toLowerCase();
+  parsed.searchParams.sort();
+  return parsed.toString();
+}
 async function createSession(userId: string, env: Env): Promise<{token:string; expires:string}> {
   const token = randomToken();
   const expires = new Date(Date.now() + SESSION_MS).toISOString();
@@ -338,14 +348,22 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const title = cleanText(body?.title, 160);
     const description = typeof body?.description === "string" ? body.description.trim().slice(0, 2000) : "";
     const category = cleanText(body?.category, 80);
-    const urlValue = cleanText(body?.url, 2048);
+    const urlInput = cleanText(body?.url, 2048);
+    let urlValue: string | null = urlInput;
     if (!title || /[<>]/.test(title)) return fail("Titre de cadeau invalide.");
-    if (urlValue) {
+    if (body?.url != null && body.url !== "" && !urlInput) return fail("URL invalide.");
+    if (urlInput) {
       try {
-        const parsed = new URL(urlValue);
+        const parsed = new URL(urlInput);
         if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return fail("Seules les URL HTTP(S) sont autorisées.");
         if (parsed.username || parsed.password) return fail("URL invalide.");
+        urlValue = normalizeGiftUrl(parsed.toString());
       } catch { return fail("URL invalide."); }
+    }
+    if (urlValue) {
+      const duplicate = await env.DB.prepare("SELECT id FROM wishlist_items WHERE wishlist_id=? AND url=?")
+        .bind(listId,urlValue).first();
+      if (duplicate) return fail("Ce lien est déjà présent dans cette liste.",409);
     }
     const quantity = Number.isInteger(body?.quantity) ? Number(body?.quantity) : 1;
     const priority = Number.isInteger(body?.priority) ? Number(body?.priority) : 2;
@@ -459,9 +477,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
       let value:string|null=null;
       if(body.url!==null&&body.url!==""){
         if(typeof body.url!=="string"||body.url.length>2048)return fail("URL invalide.");
-        try{const parsed=new URL(body.url);if(!["http:","https:"].includes(parsed.protocol)||parsed.username||parsed.password)return fail("URL invalide.");value=parsed.toString();}
+        try{const parsed=new URL(body.url);if(!["http:","https:"].includes(parsed.protocol)||parsed.username||parsed.password)return fail("URL invalide.");value=normalizeGiftUrl(parsed.toString());}
         catch{return fail("URL invalide.");}
       }
+      if(value){const duplicate=await env.DB.prepare("SELECT id FROM wishlist_items WHERE wishlist_id=? AND url=? AND id<>?").bind(listId,value,itemId).first();if(duplicate)return fail("Ce lien est déjà présent dans cette liste.",409);}
       fields.push("url=?");values.push(value);
     }
     if("quantity" in body){if(!Number.isInteger(body.quantity)||Number(body.quantity)<1||Number(body.quantity)>99)return fail("Quantité invalide.");fields.push("quantity=?");values.push(body.quantity);}
