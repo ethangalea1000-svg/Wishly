@@ -242,6 +242,36 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const user = await getUser(request, env);
   if (!user) return fail("Authentification requise.", 401);
 
+  if(url.pathname==="/api/account/export" && request.method==="GET"){
+    const account=await env.DB.prepare("SELECT id,email,display_name,created_at,email_verified_at FROM users WHERE id=? AND deleted_at IS NULL")
+      .bind(user.id).first();
+    if(!account)return fail("Compte introuvable.",404);
+    const lists=await env.DB.prepare("SELECT id,title,description,visibility,occasion,event_date,currency,archived_at,created_at,updated_at FROM wishlists WHERE owner_id=? ORDER BY created_at")
+      .bind(user.id).all<any>();
+    const exportedLists=await Promise.all(lists.results.map(async(list:any)=>{
+      const items=await env.DB.prepare("SELECT id,title,url,image_url,description,category,price_minor,currency,quantity,priority,status,created_at,updated_at FROM wishlist_items WHERE wishlist_id=? ORDER BY created_at")
+        .bind(list.id).all();
+      return {...list,items:items.results};
+    }));
+    return json({exportedAt:new Date().toISOString(),account,lists:exportedLists},200,headers);
+  }
+  if(url.pathname==="/api/account" && request.method==="DELETE"){
+    const body=await bodyJson(request);
+    const password=typeof body?.password==="string"?body.password:"";
+    const confirmEmail=typeof body?.confirmEmail==="string"?body.confirmEmail.trim().toLowerCase():"";
+    const account=await env.DB.prepare("SELECT email,password_hash,password_salt,password_iterations FROM users WHERE id=? AND deleted_at IS NULL")
+      .bind(user.id).first<{email:string;password_hash:string;password_salt:string;password_iterations:number}>();
+    if(!account)return fail("Compte introuvable.",404);
+    if(confirmEmail!==account.email.toLowerCase()||password.length===0||password.length>128)return fail("Confirmation invalide.",403);
+    const calculated=await derivePassword(password,account.password_salt,account.password_iterations);
+    if(calculated!==account.password_hash)return fail("Confirmation invalide.",403);
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(),user.id,"account.delete","user",user.id).run();
+    await env.DB.prepare("DELETE FROM users WHERE id=?").bind(user.id).run();
+    headers.append("Set-Cookie",clearCookie());
+    return json({ok:true},200,headers);
+  }
+
   const shareOwnerMatch=url.pathname.match(/^\/api\/lists\/([0-9a-f-]{36})\/share$/i);
   if(shareOwnerMatch && request.method==="POST"){
     const listId=shareOwnerMatch[1];
