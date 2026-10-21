@@ -9,10 +9,15 @@
     };
     const api = async (path, options = {}) => {
       const token = sessionStorage.getItem(TOKEN_KEY);
-      const response = await fetch(API_BASE_URL + "/api/" + path.replace(/^\//, ""), {
+      let response;
+      try {
+        response = await fetch(API_BASE_URL + "/api/" + path.replace(/^\//, ""), {
         ...options,
         headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(token ? { "Authorization": "Bearer " + token } : {}), ...(options.headers || {}) }
-      });
+        });
+      } catch {
+        throw new Error("Impossible de joindre le serveur Wishly. Vérifie que l’API est déployée et que la connexion fonctionne, puis réessaie.");
+      }
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Une erreur est survenue. Réessaie.");
       return payload;
