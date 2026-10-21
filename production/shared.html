@@ -10,12 +10,12 @@
 </style>
 </head>
 <body>
-<header class="top"><a class="brand" href="./">wish<span>ly</span></a></header>
+<header class="top"><a class="brand" href="/">wish<span>ly</span></a></header>
 <main><section class="panel">
 <p class="muted">Liste partagée avec Wishly</p><h1 id="title">Chargement de la liste…</h1><p id="description" class="muted"></p>
 <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
 <div id="items"></div><section style="margin-top:1.5rem;border-top:1px solid var(--line);padding-top:1rem"><h2>Annuler une réservation</h2><p class="muted">Saisis la référence et le code reçu au moment de la réservation.</p><form id="cancelForm" class="row"><label for="reservationId">Référence</label><input id="reservationId" required maxlength="36" placeholder="Identifiant de réservation"><label for="cancelToken">Code d’annulation</label><input id="cancelToken" required maxlength="64" pattern="[a-fA-F0-9]{64}" placeholder="Code secret"><button class="btn" type="submit">Annuler</button></form></section>
 <p class="footer">Une réservation est visible aux autres invités pour éviter les doublons. Le propriétaire de la liste ne voit pas le nom des personnes qui réservent via cette page.</p>
 </section></main>
-<script src="./shared.js" defer></script>
+<script src="/shared.js" defer></script>
 </body></html>
