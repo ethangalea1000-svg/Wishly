@@ -95,8 +95,8 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [ ] 178 mentions légales
 - [ ] 179 internationalisation
 - [ ] 180 détection de langue
-- [ ] 181 navigation clavier
-- [ ] 182 attributs ARIA
+- [x] 181 navigation clavier et focus visible sur les contrôles principaux
+- [x] 182 attributs ARIA et annonces de statut sur les parcours principaux
 - [ ] 183 textes alternatifs
 - [ ] 184 information jamais indiquée par la couleur seule
 - [ ] 185 pays et paramètres régionaux
@@ -106,12 +106,12 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [ ] 189 zoom à 200 %
 - [ ] 190 transparence d'affiliation
 - [ ] 191 politique adaptée aux mineurs
-- [ ] 192 libellés de formulaires
-- [ ] 193 prévention des débordements
+- [x] 192 libellés de formulaires sur les pages de production
+- [x] 193 gestion des débordements de texte dans les cartes principales
 - [ ] 194 analytique anonymisée et consentement si requis
 - [ ] 195 messages d'erreur utiles
 - [ ] 196 respect de prefers-reduced-motion
-- [ ] 197 HTML sémantique
+- [x] 197 HTML sémantique sur les pages de production créées
 - [ ] 198 pages 404/500
 - [ ] 199 sauvegardes et restauration testées
 - [ ] 200 cycle de vie et effacement des données
