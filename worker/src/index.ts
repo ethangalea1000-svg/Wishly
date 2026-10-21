@@ -189,8 +189,77 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role } }, 200, headers);
   }
 
+  const publicListMatch = url.pathname.match(/^\\/api\\/shared\\/([a-f0-9]{64})$/);
+  if (publicListMatch && request.method === "GET") {
+    const list = await env.DB.prepare(
+      "SELECT id,title,description,occasion,event_date,currency FROM wishlists WHERE share_token=? AND visibility IN ('public','unlisted') AND archived_at IS NULL"
+    ).bind(publicListMatch[1]).first<{id:string;title:string;description:string;occasion:string|null;event_date:string|null;currency:string}>();
+    if (!list) return fail("Liste introuvable.",404);
+    const result = await env.DB.prepare(
+      "SELECT i.id,i.title,i.url,i.image_url,i.description,i.category,i.price_minor,i.currency,i.quantity,i.priority, (SELECT COUNT(*) FROM reservations r WHERE r.item_id=i.id AND r.status='active') AS reserved_quantity FROM wishlist_items i WHERE i.wishlist_id=? ORDER BY i.priority DESC,i.created_at DESC LIMIT 200"
+    ).bind(list.id).all();
+    const items = result.results.map((item:any)=>({...item,remaining_quantity:Math.max(0,Number(item.quantity)-Number(item.reserved_quantity)),is_fully_reserved:Number(item.reserved_quantity)>=Number(item.quantity)}));
+    return json({list,items},200,headers);
+  }
+  const publicReserveMatch=url.pathname.match(/^\\/api\\/shared\\/([a-f0-9]{64})\\/items\\/([0-9a-f-]{36})\\/reservations$/i);
+  if(publicReserveMatch && request.method==="POST"){
+    if(!(await rateLimit(request,env,"guest-reservation",15)))return fail("Trop de tentatives. Réessaie plus tard.",429);
+    const list=await env.DB.prepare("SELECT id FROM wishlists WHERE share_token=? AND visibility IN ('public','unlisted') AND archived_at IS NULL")
+      .bind(publicReserveMatch[1]).first<{id:string}>();
+    if(!list)return fail("Liste introuvable.",404);
+    const body=await bodyJson(request);
+    const guestName=cleanText(body?.guestName,60);
+    if(!guestName||/[<>]/.test(guestName))return fail("Nom invalide.");
+    const item=await env.DB.prepare("SELECT id,quantity FROM wishlist_items WHERE id=? AND wishlist_id=?")
+      .bind(publicReserveMatch[2],list.id).first<{id:string;quantity:number}>();
+    if(!item)return fail("Cadeau introuvable.",404);
+    const reservationId=randomId();
+    const cancelToken=randomToken();
+    const tokenHash=await sha256(env.SESSION_PEPPER+":"+cancelToken);
+    const created=await env.DB.prepare(
+      "INSERT INTO reservations(id,item_id,guest_name,cancel_token_hash,status) SELECT ?,?,?,?,'active' WHERE (SELECT COUNT(*) FROM reservations WHERE item_id=? AND status='active') < ?"
+    ).bind(reservationId,item.id,guestName,tokenHash,item.id,item.quantity).run();
+    if(!created.meta.changes)return fail("Ce cadeau vient d'être entièrement réservé. Actualise la liste.",409);
+    await env.DB.prepare("INSERT INTO audit_events(id,action,entity_type,entity_id) VALUES(?,?,?,?)")
+      .bind(randomId(),"reservation.create","reservation",reservationId).run();
+    return json({ok:true,reservationId,cancellationToken:cancelToken,message:"Garde ce code pour annuler ta réservation."},201,headers);
+  }
+  const cancelMatch=url.pathname.match(/^\\/api\\/reservations\\/([0-9a-f-]{36})\\/cancel$/i);
+  if(cancelMatch && request.method==="POST"){
+    const body=await bodyJson(request);
+    const cancelToken=typeof body?.cancellationToken==="string"?body.cancellationToken:"";
+    if(!/^[a-f0-9]{64}$/.test(cancelToken))return fail("Code d'annulation invalide.",403);
+    const tokenHash=await sha256(env.SESSION_PEPPER+":"+cancelToken);
+    const result=await env.DB.prepare("UPDATE reservations SET status='cancelled',updated_at=? WHERE id=? AND cancel_token_hash=? AND status='active'")
+      .bind(new Date().toISOString(),cancelMatch[1],tokenHash).run();
+    if(!result.meta.changes)return fail("Réservation introuvable ou déjà annulée.",404);
+    await env.DB.prepare("INSERT INTO audit_events(id,action,entity_type,entity_id) VALUES(?,?,?,?)")
+      .bind(randomId(),"reservation.cancel","reservation",cancelMatch[1]).run();
+    return json({ok:true},200,headers);
+  }
+
   const user = await getUser(request, env);
   if (!user) return fail("Authentification requise.", 401);
+
+  const shareOwnerMatch=url.pathname.match(/^\\/api\\/lists\\/([0-9a-f-]{36})\\/share$/i);
+  if(shareOwnerMatch && request.method==="POST"){
+    const listId=shareOwnerMatch[1];
+    const owned=await env.DB.prepare("SELECT id,share_token,visibility FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id)
+      .first<{id:string;share_token:string|null;visibility:string}>();
+    if(!owned)return fail("Liste introuvable.",404);
+    const body=await bodyJson(request);
+    if(body?.revoke===true){
+      await env.DB.prepare("UPDATE wishlists SET share_token=NULL,visibility='private',updated_at=? WHERE id=? AND owner_id=?")
+        .bind(new Date().toISOString(),listId,user.id).run();
+      return json({ok:true,shareUrl:null},200,headers);
+    }
+    const token=owned.share_token||randomToken();
+    await env.DB.prepare("UPDATE wishlists SET share_token=?,visibility='unlisted',updated_at=? WHERE id=? AND owner_id=?")
+      .bind(token,new Date().toISOString(),listId,user.id).run();
+    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+      .bind(randomId(),user.id,"wishlist.share","wishlist",listId).run();
+    return json({shareToken:token,sharePath:"/shared/"+token,visibility:"unlisted"},200,headers);
+  }
 
   if (url.pathname === "/api/lists" && request.method === "GET") {
     const result = await env.DB.prepare(
