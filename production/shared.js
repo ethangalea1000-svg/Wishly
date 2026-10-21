@@ -30,10 +30,10 @@ async function load(){
      const result=await api("shared/"+token+"/items/"+encodeURIComponent(item.id)+"/reservations",{method:"POST",body:JSON.stringify({guestName:input.value})});
      const dialog=document.createElement("div");dialog.className="notice";
      const message=document.createElement("p");message.textContent="Réservation enregistrée. Conserve le code ci-dessous pour pouvoir annuler.";
-     const code=document.createElement("code");code.textContent=result.cancellationToken;
+     const code=document.createElement("code");code.textContent=result.cancellationToken;code.style.display="block";code.style.overflowWrap="anywhere";
      const copy=document.createElement("button");copy.type="button";copy.className="btn";copy.textContent="Copier le code";
      copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(result.cancellationToken);copy.textContent="Code copié";}catch{notice("Copie impossible : sélectionne le code manuellement.");}});
-     dialog.append(message,code,copy);article.append(dialog);form.remove();await load();
+     const reservationId=document.createElement("p");reservationId.textContent="Référence de réservation : "+result.reservationId;dialog.append(message,reservationId,code,copy);article.append(dialog);form.remove();
     }catch(error){notice(error.message,true);button.disabled=false;}
    });
    article.append(form);
