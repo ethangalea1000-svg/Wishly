@@ -25,8 +25,8 @@ function json(data: unknown, status = 200, extra: HeadersInit = {}): Response {
   headers.set("Vary", "Origin");
   return new Response(JSON.stringify(data), { status, headers });
 }
-function fail(message: string, status = 400): Response {
-  return json({ error: message }, status);
+function fail(message: string, status = 400, extra: HeadersInit = {}): Response {
+  return json({ error: message }, status, extra);
 }
 function randomId(): string {
   return crypto.randomUUID();
