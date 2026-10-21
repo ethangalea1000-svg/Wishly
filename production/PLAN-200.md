@@ -31,6 +31,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [x] Réservation invité avec limite de quantité et code d'annulation à usage secret.
 - [x] L'annulation invité nécessite l'identifiant de réservation et le code secret; seul le hachage du code est conservé.
 - [x] Journal d'audit des opérations sensibles implémentées.
+- [x] Export JSON des données du compte et suppression du compte après confirmation par mot de passe et adresse e-mail.
 - [x] Tests automatisés exécutés en CI pour la configuration, la santé, l'origine des mutations et le schéma SQL.
 - [x] Pages de brouillon confidentialité, conditions et mentions légales; elles restent à compléter et valider avant publication.
 - [x] Page 404 accessible de base.
@@ -83,7 +84,7 @@ Ce document est le suivi de livraison de la version **production**. Les cases re
 - [ ] 41 erreurs non révélatrices
 - [ ] 42 prévention injections SQL
 - [ ] 43 politique de comptes inactifs
-- [ ] 44 suppression/export RGPD
+- [x] 44 suppression/export du compte (cycle complet et politique de rétention encore à valider)
 - [ ] 45 historique de connexion respectueux de la vie privée
 - [ ] 46 verrouillage progressif et anti-bruteforce
 - [ ] 47 alertes de sécurité par e-mail
