@@ -132,12 +132,13 @@
           detail.append(card);
         });
         const form = document.createElement("form"); form.id = "itemForm"; form.style.marginTop = "1.4rem";
-        form.innerHTML = '<h2>Ajouter une idée</h2><div class="field"><label for="itemTitle">Nom du cadeau</label><input id="itemTitle" maxlength="160" required></div><div class="field"><label for="itemUrl">Lien (facultatif)</label><input id="itemUrl" type="url" maxlength="2048" placeholder="https://…"></div><div class="field"><label for="itemDescription">Description (facultatif)</label><textarea id="itemDescription" maxlength="2000"></textarea></div><div class="row"><div class="field" style="flex:1"><label for="itemQuantity">Quantité</label><input id="itemQuantity" type="number" min="1" max="99" value="1" required></div><div class="field" style="flex:1"><label for="itemPriority">Priorité</label><select id="itemPriority"><option value="1">Basse</option><option value="2" selected>Normale</option><option value="3">Haute</option></select></div></div><button class="btn" type="submit">Ajouter le cadeau</button>';
+        form.innerHTML = '<h2>Ajouter une idée</h2><div class="field"><label for="itemTitle">Nom du cadeau</label><input id="itemTitle" maxlength="160" required></div><div class="field"><label for="itemUrl">Lien (facultatif)</label><input id="itemUrl" type="url" maxlength="2048" placeholder="https://…"></div><div class="field"><label for="itemDescription">Description (facultatif)</label><textarea id="itemDescription" maxlength="2000"></textarea></div><div class="field"><label for="itemCategory">Catégorie (facultatif)</label><input id="itemCategory" maxlength="80" placeholder="Ex. Lecture, technologie…"></div><div class="row"><div class="field" style="flex:1"><label for="itemPrice">Prix estimé en euros (facultatif)</label><input id="itemPrice" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="0,00"></div><div class="field" style="flex:1"><label for="itemQuantity">Quantité</label><input id="itemQuantity" type="number" min="1" max="99" value="1" required></div><div class="field" style="flex:1"><label for="itemPriority">Priorité</label><select id="itemPriority"><option value="1">Basse</option><option value="2" selected>Normale</option><option value="3">Haute</option></select></div></div><button class="btn" type="submit">Ajouter le cadeau</button>';
         form.addEventListener("submit", async event => {
           event.preventDefault();
           try {
             await api("lists/" + encodeURIComponent(id) + "/items", { method:"POST", body:JSON.stringify({
-              title:$("itemTitle").value, url:$("itemUrl").value || null, description:$("itemDescription").value,
+              title:$("itemTitle").value, url:$("itemUrl").value || null, description:$("itemDescription").value, category:$("itemCategory").value || null,
+              priceMinor:$("itemPrice").value === "" ? null : Math.round(Number($("itemPrice").value) * 100),
               quantity:Number($("itemQuantity").value), priority:Number($("itemPriority").value)
             })});
             notice("appNotice", "Cadeau ajouté."); await openList(id);
