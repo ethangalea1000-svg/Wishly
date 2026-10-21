@@ -113,10 +113,49 @@
         if(list.event_date)metadata.push(new Date(list.event_date+"T12:00:00").toLocaleDateString("fr-FR"));
         if(list.currency)metadata.push(list.currency);
         if(metadata.length){const p=document.createElement("p");p.className="muted";p.textContent=metadata.join(" · ");detail.append(p);}
+        const editDetails=document.createElement("details");editDetails.style.margin="1rem 0";
+        editDetails.innerHTML='<summary style="cursor:pointer;font-weight:700;padding:.5rem 0">Modifier les détails de la liste</summary><form class="stack" style="margin-top:.8rem"><div class="field"><label for="editListTitle">Titre</label><input id="editListTitle" maxlength="100" required></div><div class="field"><label for="editListDescription">Description</label><textarea id="editListDescription" maxlength="2000"></textarea></div><div class="field"><label for="editListOccasion">Occasion</label><input id="editListOccasion" maxlength="80"></div><div class="field"><label for="editListDate">Date</label><input id="editListDate" type="date"></div><div class="field"><label for="editListCurrency">Devise</label><select id="editListCurrency"><option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option><option value="CAD">CAD</option><option value="CHF">CHF</option><option value="JPY">JPY</option></select></div><button class="btn" type="submit">Enregistrer les détails</button></form>';
+        editDetails.querySelector("#editListTitle").value=list.title||"";
+        editDetails.querySelector("#editListDescription").value=list.description||"";
+        editDetails.querySelector("#editListOccasion").value=list.occasion||"";
+        editDetails.querySelector("#editListDate").value=list.event_date||"";
+        editDetails.querySelector("#editListCurrency").value=list.currency||"EUR";
+        editDetails.querySelector("form").addEventListener("submit",async event=>{
+          event.preventDefault();
+          try{
+            await api("lists/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({
+              title:editDetails.querySelector("#editListTitle").value,
+              description:editDetails.querySelector("#editListDescription").value,
+              occasion:editDetails.querySelector("#editListOccasion").value||null,
+              eventDate:editDetails.querySelector("#editListDate").value||null,
+              currency:editDetails.querySelector("#editListCurrency").value
+            })});
+            notice("appNotice","Détails de la liste enregistrés.");await openList(id);
+          }catch(error){notice("appNotice",error.message,true);}
+        });
+        detail.append(editDetails);
         const itemTitle = document.createElement("h2"); itemTitle.textContent = "Idées de cadeaux"; itemTitle.style.marginTop = "1.4rem"; detail.append(itemTitle);
+        const itemToolbar=document.createElement("div");itemToolbar.className="row";itemToolbar.style.margin=".7rem 0";
+        const itemFilter=document.createElement("input");itemFilter.type="search";itemFilter.placeholder="Rechercher un cadeau";itemFilter.setAttribute("aria-label","Rechercher dans les cadeaux");itemFilter.style.flex="1";
+        const itemSort=document.createElement("select");itemSort.setAttribute("aria-label","Trier les cadeaux");
+        [["newest","Plus récents"],["priority","Priorité"],["price","Prix croissant"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;itemSort.append(option);});
+        itemToolbar.append(itemFilter,itemSort);detail.append(itemToolbar);
+        const itemContainer=document.createElement("div");detail.append(itemContainer);
+        const sortAndFilter=()=>{
+          const query=itemFilter.value.trim().toLocaleLowerCase("fr");
+          const cards=Array.from(itemContainer.children).filter(node=>node instanceof HTMLElement);
+          cards.forEach(card=>{card.hidden=!card.textContent.toLocaleLowerCase("fr").includes(query);});
+          cards.sort((a,b)=>{
+            if(itemSort.value==="priority")return Number(b.dataset.priority)-Number(a.dataset.priority);
+            if(itemSort.value==="price")return Number(a.dataset.price)-Number(b.dataset.price);
+            return String(b.dataset.created).localeCompare(String(a.dataset.created));
+          });
+          cards.forEach(card=>itemContainer.append(card));
+        };
+        itemFilter.addEventListener("input",sortAndFilter);itemSort.addEventListener("change",sortAndFilter);
         if (!items.length) { const empty = document.createElement("div"); empty.className = "empty"; empty.textContent = "Ajoute ta première idée ci-dessous."; detail.append(empty); }
         items.forEach(item => {
-          const card = document.createElement("article"); card.className = "gift";
+          const card = document.createElement("article"); card.className = "gift"; card.dataset.priority=String(item.priority||2); card.dataset.price=String(item.price_minor==null?999999999999:item.price_minor); card.dataset.created=String(item.created_at||"");
           const h = document.createElement("h3"); h.textContent = item.title;
           const p = document.createElement("p"); p.className = "muted"; p.textContent = item.description || "Aucune description";
           card.append(h,p);
@@ -145,8 +184,9 @@
             catch(error){statusSelect.value=item.status||"wanted";notice("appNotice",error.message,true);}
           });
           statusLabel.append(statusSelect);card.append(statusLabel);
-          detail.append(card);
+          itemContainer.append(card);
         });
+        sortAndFilter();
         const form = document.createElement("form"); form.id = "itemForm"; form.style.marginTop = "1.4rem";
         form.innerHTML = '<h2>Ajouter une idée</h2><div class="field"><label for="itemTitle">Nom du cadeau</label><input id="itemTitle" maxlength="160" required></div><div class="field"><label for="itemUrl">Lien (facultatif)</label><input id="itemUrl" type="url" maxlength="2048" placeholder="https://…"></div><div class="field"><label for="itemDescription">Description (facultatif)</label><textarea id="itemDescription" maxlength="2000"></textarea></div><div class="field"><label for="itemCategory">Catégorie (facultatif)</label><input id="itemCategory" maxlength="80" placeholder="Ex. Lecture, technologie…"></div><div class="row"><div class="field" style="flex:1"><label for="itemPrice">Prix estimé (facultatif)</label><input id="itemPrice" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="0,00"></div><div class="field" style="flex:1"><label for="itemQuantity">Quantité</label><input id="itemQuantity" type="number" min="1" max="99" value="1" required></div><div class="field" style="flex:1"><label for="itemPriority">Priorité</label><select id="itemPriority"><option value="1">Basse</option><option value="2" selected>Normale</option><option value="3">Haute</option></select></div></div><button class="btn" type="submit">Ajouter le cadeau</button>';
         $("itemPrice").previousElementSibling.textContent = "Prix estimé en " + (list.currency || "EUR") + " (facultatif)";
