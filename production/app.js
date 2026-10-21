@@ -76,6 +76,30 @@
         const title = document.createElement("h2"); title.id = "selectedTitle"; title.textContent = list.title;
         const badge = document.createElement("span"); badge.className = "pill"; badge.textContent = "Privée";
         heading.append(title, badge); detail.append(heading);
+        const actions = document.createElement("div"); actions.className = "row"; actions.style.margin = ".8rem 0 1.2rem";
+        const actionButton = (label, cls, handler) => { const b=document.createElement("button"); b.type="button"; b.className="btn "+(cls||"secondary"); b.textContent=label; b.addEventListener("click",handler); actions.append(b); return b; };
+        actionButton("Partager", "secondary", async () => {
+          try {
+            const result=await api("lists/"+encodeURIComponent(id)+"/share",{method:"POST",body:JSON.stringify({})});
+            const shareUrl=location.origin+"/shared/"+result.shareToken;
+            try { await navigator.clipboard.writeText(shareUrl); notice("appNotice","Lien de partage copié."); }
+            catch { notice("appNotice","Lien de partage : "+shareUrl); }
+          } catch(error) { notice("appNotice",error.message,true); }
+        });
+        actionButton("Dupliquer", "secondary", async () => {
+          try { const result=await api("lists/"+encodeURIComponent(id)+"/duplicate",{method:"POST",body:JSON.stringify({})}); notice("appNotice","Liste dupliquée."); state.selected=result.list.id; await loadLists(); }
+          catch(error){notice("appNotice",error.message,true);}
+        });
+        actionButton("Archiver / restaurer", "secondary", async () => {
+          try { await api("lists/"+encodeURIComponent(id)+"/archive",{method:"POST",body:JSON.stringify({})}); notice("appNotice","État d’archivage modifié."); await loadLists(); }
+          catch(error){notice("appNotice",error.message,true);}
+        });
+        actionButton("Supprimer la liste", "danger", async () => {
+          if(!confirm("Supprimer définitivement cette liste et ses cadeaux ?")) return;
+          try { await api("lists/"+encodeURIComponent(id),{method:"DELETE"}); state.selected=null; notice("appNotice","Liste supprimée."); await loadLists(); }
+          catch(error){notice("appNotice",error.message,true);}
+        });
+        detail.append(actions);
         if (list.description) { const p = document.createElement("p"); p.className = "muted"; p.textContent = list.description; detail.append(p); }
         const itemTitle = document.createElement("h2"); itemTitle.textContent = "Idées de cadeaux"; itemTitle.style.marginTop = "1.4rem"; detail.append(itemTitle);
         if (!items.length) { const empty = document.createElement("div"); empty.className = "empty"; empty.textContent = "Ajoute ta première idée ci-dessous."; detail.append(empty); }
@@ -84,6 +108,20 @@
           const h = document.createElement("h3"); h.textContent = item.title;
           const p = document.createElement("p"); p.className = "muted"; p.textContent = item.description || "Aucune description";
           card.append(h,p);
+          const giftActions=document.createElement("div"); giftActions.className="row"; giftActions.style.marginTop=".7rem";
+          const editGift=document.createElement("button"); editGift.type="button"; editGift.className="btn secondary"; editGift.textContent="Modifier";
+          editGift.addEventListener("click",async()=>{
+            const nextTitle=prompt("Nom du cadeau :",item.title); if(nextTitle===null)return;
+            try{await api("lists/"+encodeURIComponent(id)+"/items/"+encodeURIComponent(item.id),{method:"PATCH",body:JSON.stringify({title:nextTitle})});notice("appNotice","Cadeau modifié.");await openList(id);}
+            catch(error){notice("appNotice",error.message,true);}
+          });
+          const deleteGift=document.createElement("button"); deleteGift.type="button"; deleteGift.className="btn danger"; deleteGift.textContent="Supprimer";
+          deleteGift.addEventListener("click",async()=>{
+            if(!confirm("Supprimer ce cadeau ?"))return;
+            try{await api("lists/"+encodeURIComponent(id)+"/items/"+encodeURIComponent(item.id),{method:"DELETE"});notice("appNotice","Cadeau supprimé.");await openList(id);}
+            catch(error){notice("appNotice",error.message,true);}
+          });
+          giftActions.append(editGift,deleteGift); card.append(giftActions);
           if (item.url) { const a = document.createElement("a"); a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Ouvrir le lien du cadeau"; card.append(a); }
           const meta = document.createElement("p"); meta.className = "muted"; meta.textContent = "Quantité : " + item.quantity + " · Priorité : " + item.priority; card.append(meta);
           detail.append(card);
