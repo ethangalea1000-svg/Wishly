@@ -74,3 +74,36 @@ jobs:
             test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  local-d1-integration:
+    name: Real API integration against isolated local D1
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Apply migrations to isolated local D1
+        run: npx wrangler d1 migrations apply wishly-production-db --local
+      - name: Start Worker against local D1
+        run: |
+          npx wrangler dev --local --ip 127.0.0.1 --port 8787 --var APP_ORIGIN:http://localhost:8787 --var SESSION_PEPPER:local-integration-secret-which-is-long-enough > /tmp/wishly-local-worker.log 2>&1 &
+          echo $! > /tmp/wishly-local-worker.pid
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:8787/api/health > /dev/null; then
+              echo "Local Worker is healthy."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/wishly-local-worker.log
+          exit 1
+      - name: Exercise real registration, wishlist, sharing and guest reservation flows
+        run: node test/integration-local.mjs
+      - name: Show Worker logs if integration fails
+        if: failure()
+        run: cat /tmp/wishly-local-worker.log
