@@ -22,13 +22,16 @@ async function load(){
  if(!/^[a-f0-9]{64}$/.test(token)){notice("Lien de partage invalide.",true);$("title").textContent="Liste indisponible";return;}
  try{
  const data=await api("shared/"+token);$("title").textContent=data.list.title;$("description").textContent=data.list.description||"";
+ let eventInfo=$("eventInfo");if(!eventInfo){eventInfo=document.createElement("p");eventInfo.id="eventInfo";eventInfo.className="muted";$("description").insertAdjacentElement("afterend",eventInfo);}
+ const eventDetails=[];if(data.list.occasion)eventDetails.push(data.list.occasion);if(data.list.event_date){const date=new Date(data.list.event_date+"T12:00:00");if(!Number.isNaN(date.getTime()))eventDetails.push(date.toLocaleDateString("fr-FR"));}
+ eventInfo.textContent=eventDetails.join(" · ");eventInfo.hidden=eventDetails.length===0;
  const root=$("items");root.replaceChildren();
  const toolbar=document.createElement("div");toolbar.className="row";toolbar.style.justifyContent="space-between";toolbar.style.margin="1rem 0";
  const summary=document.createElement("p");summary.className="muted";summary.textContent="Les réservations sont anonymes pour le propriétaire de la liste.";
  const refresh=document.createElement("button");refresh.type="button";refresh.className="btn";refresh.textContent="Actualiser la liste";
  refresh.addEventListener("click",async()=>{refresh.disabled=true;refresh.textContent="Actualisation…";try{await load();}finally{refresh.disabled=false;refresh.textContent="Actualiser la liste";}});
  toolbar.append(summary,refresh);root.append(toolbar);
- if(!data.items.length){root.textContent="Cette liste ne contient pas encore de cadeaux.";return;}
+ if(!data.items.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="Cette liste ne contient pas encore de cadeaux.";root.append(empty);return;}
  data.items.forEach(item=>{
   const article=document.createElement("article");article.className="item";
   const h=document.createElement("h2");h.textContent=item.title;
