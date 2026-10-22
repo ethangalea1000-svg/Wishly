@@ -23,9 +23,9 @@ permissions:
   contents: read
 
 concurrency:
-  # Keep an active verification run alive; rapid pushes must not cancel the only full test result.
+  # Validate the newest commit instead of queueing behind stale or stalled runs.
   group: wishly-tests-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   worker-tests:
@@ -61,7 +61,7 @@ jobs:
         with:
           python-version: "3.x"
       - run: npm install --no-save @playwright/test
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - name: Run browser tests
         run: npx playwright test
       - name: Upload Playwright report on failure
