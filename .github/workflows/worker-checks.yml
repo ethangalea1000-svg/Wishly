@@ -23,8 +23,9 @@ permissions:
   contents: read
 
 concurrency:
+  # Keep an active verification run alive; rapid pushes must not cancel the only full test result.
   group: wishly-tests-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   worker-tests:
