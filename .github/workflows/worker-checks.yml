@@ -139,6 +139,8 @@ jobs:
             -H "Access-Control-Request-Headers: authorization,content-type" \
             "${api}/api/auth/login")"
           echo "CORS preflight HTTP status: ${status}"
+          echo "CORS preflight response headers:"
+          cat "${headers}"
           test "${status}" = "204"
           grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
           grep -iq "^access-control-allow-credentials: true" "${headers}"
