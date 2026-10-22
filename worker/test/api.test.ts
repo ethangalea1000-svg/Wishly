@@ -61,7 +61,7 @@ describe("Wishly API baseline security", () => {
     const response = await api.fetch(new Request("https://wishly.example/api/health", {
       headers: { Origin: "https://attacker.example" }
     }), env);
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(403);
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
     expect(response.headers.get("access-control-allow-credentials")).toBeNull();
   });
