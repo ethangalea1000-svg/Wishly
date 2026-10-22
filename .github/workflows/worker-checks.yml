@@ -109,10 +109,27 @@ jobs:
         run: cat /tmp/wishly-local-worker.log
 
   live-api-smoke:
-    name: Production API health and CORS smoke test
+    name: Production API and published frontend smoke tests
     runs-on: ubuntu-latest
     steps:
-      - name: Verify public health endpoint from the published site origin
+      - name: Verify the published Wishly frontend and its JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://ethangalea1000-svg.github.io/Wishly/wishly-app"
+          page="$(mktemp)"
+          script="$(mktemp)"
+          page_status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -o "${page}" -w "%{http_code}" "${base}/")"
+          echo "Published frontend HTTP status: ${page_status}"
+          test "${page_status}" = "200"
+          grep -q 'id="authForm"' "${page}"
+          grep -q 'src="./app.js"' "${page}"
+          script_status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -o "${script}" -w "%{http_code}" "${base}/app.js")"
+          echo "Published app.js HTTP status: ${script_status}"
+          test "${script_status}" = "200"
+          grep -q 'https://wishly-production-api.ethan-galea1000.workers.dev' "${script}"
+          grep -q 'auth/me' "${script}"
+      - name: Verify public API health endpoint from the published site origin
         shell: bash
         run: |
           set -euo pipefail
