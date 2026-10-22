@@ -518,13 +518,22 @@ async function handle(request: Request, env: Env): Promise<Response> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
+      // Keep configuration errors readable by the exact configured frontend origin.
+      // Without these headers, browsers hide the useful HTTP 503 behind a generic
+      // "Failed to fetch" message, making deployment misconfiguration hard to diagnose.
+      const requestOrigin = request.headers.get("Origin");
+      const diagnosticCors: HeadersInit = requestOrigin && requestOrigin === env.APP_ORIGIN ? {
+        "Access-Control-Allow-Origin": env.APP_ORIGIN,
+        "Access-Control-Allow-Credentials": "true",
+        "Vary": "Origin"
+      } : {};
       if (!env.SESSION_PEPPER || env.SESSION_PEPPER.length < 32 ||
           !env.APP_ORIGIN || env.APP_ORIGIN.includes("REPLACE")) {
-        return fail("Configuration serveur incomplète.", 503);
+        return fail("Configuration serveur incomplète.", 503, diagnosticCors);
       }
       let configuredOrigin: URL;
       try { configuredOrigin = new URL(env.APP_ORIGIN); }
-      catch { return fail("Configuration serveur invalide.", 503); }
+      catch { return fail("Configuration serveur invalide.", 503, diagnosticCors); }
       const localHttp = configuredOrigin.protocol === "http:" &&
         (configuredOrigin.hostname === "localhost" || configuredOrigin.hostname === "127.0.0.1");
       if (configuredOrigin.origin !== env.APP_ORIGIN ||
