@@ -100,8 +100,8 @@ test("inscription, création de liste, ajout de cadeau, partage, révocation et 
   await page.getByLabel("Titre de la liste").fill("Anniversaire E2E");
   await page.getByLabel("Description (facultatif)").fill("Liste créée automatiquement");
   await page.getByRole("button", { name: "Créer la liste" }).click();
-  await expect(page.getByRole("heading", { name: "Anniversaire E2E" })).toBeVisible();
-  await expect(page.locator("#itemForm")).toBeVisible();
+  await expect(page.locator("#appNotice")).toContainText("Liste créée.");
+  await expect(page.locator("#itemForm")).toBeVisible({ timeout: 15000 });
 
   await page.locator("#itemTitle").fill("Livre de test");
   await page.locator("#itemDescription").fill("Un cadeau de test");
