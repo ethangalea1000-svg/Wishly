@@ -43,6 +43,25 @@ describe("Wishly API baseline security", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
+  it("allows credentialed CORS only for the configured application origin", async () => {
+    const response = await api.fetch(new Request("https://wishly.example/api/health", {
+      headers: { Origin: "https://wishly.example" }
+    }), env);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://wishly.example");
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(response.headers.get("vary")).toContain("Origin");
+  });
+
+  it("does not grant CORS access to an untrusted origin", async () => {
+    const response = await api.fetch(new Request("https://wishly.example/api/health", {
+      headers: { Origin: "https://attacker.example" }
+    }), env);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect(response.headers.get("access-control-allow-credentials")).toBeNull();
+  });
+
   it("rejects a state-changing request without an exact Origin", async () => {
     const response = await api.fetch(new Request("https://wishly.example/api/auth/logout", {
       method: "POST",
