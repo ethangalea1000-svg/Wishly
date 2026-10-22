@@ -101,10 +101,11 @@ test("inscription, création de liste, ajout de cadeau, partage, révocation et 
   await page.getByLabel("Description (facultatif)").fill("Liste créée automatiquement");
   await page.getByRole("button", { name: "Créer la liste" }).click();
   await expect(page.getByRole("heading", { name: "Anniversaire E2E" })).toBeVisible();
+  await expect(page.locator("#itemForm")).toBeVisible();
 
-  await page.getByLabel("Nom du cadeau").fill("Livre de test");
-  await page.getByLabel("Description (facultatif)", { exact: false }).last().fill("Un cadeau de test");
-  await page.getByLabel("Catégorie (facultatif)").fill("Lecture");
+  await page.locator("#itemTitle").fill("Livre de test");
+  await page.locator("#itemDescription").fill("Un cadeau de test");
+  await page.locator("#itemCategory").fill("Lecture");
   await page.getByRole("button", { name: "Ajouter le cadeau" }).click();
   await expect(page.getByRole("heading", { name: "Livre de test" })).toBeVisible();
 
