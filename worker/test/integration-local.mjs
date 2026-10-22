@@ -111,7 +111,55 @@ await request(`/api/reservations/${reservation.data.reservationId}/cancel`, {
 const afterCancel = await request(`/api/shared/${shared.data.shareToken}`);
 assert.equal(afterCancel.data.items[0].remaining_quantity, 1);
 
+
+const revoked = await request(`/api/lists/${listId}/share`, {
+  method: "POST",
+  token: loginToken,
+  expected: 200,
+  body: { revoke: true }
+});
+assert.equal(revoked.data.ok, true);
+await request(`/api/shared/${shared.data.shareToken}`, { expected: 404 });
+
+// A second account must not be able to read the owner's private list.
+const secondEmail = `wishly.integration.other.${Date.now()}@example.test`;
+const secondAccount = await request("/api/auth/register", {
+  method: "POST",
+  expected: 201,
+  body: { email: secondEmail, displayName: "Other Tester", password }
+});
+await request(`/api/lists/${listId}`, { token: secondAccount.data.sessionToken, expected: 404 });
+
+// Concurrent guest reservations must never exceed the gift's quantity.
+const concurrentItem = await request(`/api/lists/${listId}/items`, {
+  method: "POST",
+  token: loginToken,
+  expected: 201,
+  body: { title: "Concurrency test gift", quantity: 1, priority: 2 }
+});
+const concurrentItemId = concurrentItem.data.item.id;
+const newShare = await request(`/api/lists/${listId}/share`, {
+  method: "POST",
+  token: loginToken,
+  expected: 200,
+  body: {}
+});
+const concurrentResults = await Promise.all([
+  request(`/api/shared/${newShare.data.shareToken}/items/${concurrentItemId}/reservations`, {
+    method: "POST", expected: 201, body: { guestName: "Concurrent Guest A" }
+  }),
+  request(`/api/shared/${newShare.data.shareToken}/items/${concurrentItemId}/reservations`, {
+    method: "POST", expected: 409, body: { guestName: "Concurrent Guest B" }
+  })
+]);
+assert.equal(concurrentResults.filter(result => result.response.status === 201).length, 1);
+assert.equal(concurrentResults.filter(result => result.response.status === 409).length, 1);
+const concurrentView = await request(`/api/shared/${newShare.data.shareToken}`);
+assert.equal(concurrentView.data.items.find(item => item.id === concurrentItemId).remaining_quantity, 0);
+
+await request("/api/auth/logout", { method: "POST", token: secondAccount.data.sessionToken, body: {} });
+
 await request("/api/auth/logout", { method: "POST", token: loginToken, body: {} });
 await request("/api/auth/me", { token: loginToken, expected: 401 });
 
-console.log("PASS: local D1 integration flow — register, login, authenticated list, gift, share, guest reservation, capacity conflict, cancellation, logout.");
+console.log("PASS: local D1 integration flow — auth, list ownership, gift, share/revocation, guest reservation, cancellation, capacity conflict and concurrent reservations.");
