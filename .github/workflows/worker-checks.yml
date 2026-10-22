@@ -124,7 +124,7 @@ jobs:
           echo "Health endpoint HTTP status: ${status}"
           cat "${body}"
           test "${status}" = "200"
-          grep -iq "^access-control-allow-origin: ${origin}\\r\?$" "${headers}"
+          grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
           grep -q '"status"[[:space:]]*:[[:space:]]*"ok"' "${body}"
       - name: Verify browser preflight for authenticated API requests
         shell: bash
@@ -140,7 +140,7 @@ jobs:
             "${api}/api/auth/login")"
           echo "CORS preflight HTTP status: ${status}"
           test "${status}" = "204"
-          grep -iq "^access-control-allow-origin: ${origin}\\r\?$" "${headers}"
-          grep -iq "^access-control-allow-credentials: true\\r\?$" "${headers}"
+          grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
+          grep -iq "^access-control-allow-credentials: true" "${headers}"
           grep -iq "^access-control-allow-methods:.*POST" "${headers}"
           grep -iq "^access-control-allow-headers:.*authorization" "${headers}"
