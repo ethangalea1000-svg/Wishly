@@ -41,6 +41,10 @@ describe("Wishly API baseline security", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ok", service: "wishly-api" });
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("x-frame-options")).toBe("DENY");
+    expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    expect(response.headers.get("permissions-policy")).toContain("geolocation=()");
   });
 
   it("allows credentialed CORS only for the configured application origin", async () => {
