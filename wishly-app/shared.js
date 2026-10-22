@@ -72,11 +72,12 @@ async function load(){
 }
 document.getElementById("cancelForm").addEventListener("submit",async event=>{
  event.preventDefault();
+ const form=event.currentTarget;
  const id=document.getElementById("reservationId").value.trim();
  const cancellationToken=document.getElementById("cancelToken").value.trim();
  if(!/^[0-9a-f-]{36}$/i.test(id)||!/^[a-f0-9]{64}$/i.test(cancellationToken)){notice("Référence ou code invalide.",true);return;}
  const button=event.currentTarget.querySelector("button");button.disabled=true;
- try{await api("reservations/"+encodeURIComponent(id)+"/cancel",{method:"POST",body:JSON.stringify({cancellationToken})});notice("Réservation annulée.");event.currentTarget.reset();await load();}
+ try{await api("reservations/"+encodeURIComponent(id)+"/cancel",{method:"POST",body:JSON.stringify({cancellationToken})});notice("Réservation annulée.");form.reset();await load();}
  catch(error){notice(error.message,true);}
  finally{button.disabled=false;}
 });
