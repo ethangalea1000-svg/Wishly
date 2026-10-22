@@ -17,10 +17,10 @@ async function request(path, { method = "GET", token, body, expected = 200 } = {
   const raw = await response.text();
   let data;
   try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
-  assert.equal(
-    response.status,
-    expected,
-    `${method} ${path}: expected HTTP ${expected}, got ${response.status}; body=${raw.slice(0, 500)}`
+  const acceptedStatuses = Array.isArray(expected) ? expected : [expected];
+  assert.ok(
+    acceptedStatuses.includes(response.status),
+    `${method} ${path}: expected HTTP ${acceptedStatuses.join(" or ")}, got ${response.status}; body=${raw.slice(0, 500)}`
   );
   return { response, data };
 }
@@ -146,10 +146,10 @@ const newShare = await request(`/api/lists/${listId}/share`, {
 });
 const concurrentResults = await Promise.all([
   request(`/api/shared/${newShare.data.shareToken}/items/${concurrentItemId}/reservations`, {
-    method: "POST", expected: 201, body: { guestName: "Concurrent Guest A" }
+    method: "POST", expected: [201, 409], body: { guestName: "Concurrent Guest A" }
   }),
   request(`/api/shared/${newShare.data.shareToken}/items/${concurrentItemId}/reservations`, {
-    method: "POST", expected: 409, body: { guestName: "Concurrent Guest B" }
+    method: "POST", expected: [201, 409], body: { guestName: "Concurrent Guest B" }
   })
 ]);
 assert.equal(concurrentResults.filter(result => result.response.status === 201).length, 1);
