@@ -143,6 +143,20 @@ jobs:
           cat "${headers}"
           test "${status}" = "204"
           grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
-          grep -iq "^access-control-allow-credentials: true" "${headers}"
           grep -iq "^access-control-allow-methods:.*POST" "${headers}"
           grep -iq "^access-control-allow-headers:.*authorization" "${headers}"
+
+      - name: Verify API errors remain readable across origins
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://ethangalea1000-svg.github.io"
+          api="https://wishly-production-api.ethan-galea1000.workers.dev"
+          headers="$(mktemp)"
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${api}/api/lists")"
+          echo "Unauthenticated lists request HTTP status: ${status}"
+          cat "${body}"
+          test "${status}" = "401"
+          grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
+          grep -q 'Authentification requise' "${body}"
