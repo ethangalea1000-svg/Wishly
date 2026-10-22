@@ -107,3 +107,40 @@ jobs:
       - name: Show Worker logs if integration fails
         if: failure()
         run: cat /tmp/wishly-local-worker.log
+
+  live-api-smoke:
+    name: Production API health and CORS smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify public health endpoint from the published site origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://ethangalea1000-svg.github.io"
+          api="https://wishly-production-api.ethan-galea1000.workers.dev"
+          headers="$(mktemp)"
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${api}/api/health")"
+          echo "Health endpoint HTTP status: ${status}"
+          cat "${body}"
+          test "${status}" = "200"
+          grep -iq "^access-control-allow-origin: ${origin}\\r\?$" "${headers}"
+          grep -q '"status"[[:space:]]*:[[:space:]]*"ok"' "${body}"
+      - name: Verify browser preflight for authenticated API requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://ethangalea1000-svg.github.io"
+          api="https://wishly-production-api.ethan-galea1000.workers.dev"
+          headers="$(mktemp)"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -X OPTIONS -D "${headers}" -o /dev/null -w "%{http_code}" \
+            -H "Origin: ${origin}" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: authorization,content-type" \
+            "${api}/api/auth/login")"
+          echo "CORS preflight HTTP status: ${status}"
+          test "${status}" = "204"
+          grep -iq "^access-control-allow-origin: ${origin}\\r\?$" "${headers}"
+          grep -iq "^access-control-allow-credentials: true\\r\?$" "${headers}"
+          grep -iq "^access-control-allow-methods:.*POST" "${headers}"
+          grep -iq "^access-control-allow-headers:.*authorization" "${headers}"
