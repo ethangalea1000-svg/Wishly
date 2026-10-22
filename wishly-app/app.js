@@ -253,7 +253,16 @@
       } catch (error) { notice("appNotice", error.message, true); }
     });
     $("logoutBtn").addEventListener("click", async () => {
-      try { await api("auth/logout", { method:"POST", body:JSON.stringify({}) }); } finally { sessionStorage.removeItem(TOKEN_KEY); showAuth(); }
+      let logoutWarning = "";
+      try {
+        await api("auth/logout", { method:"POST", body:JSON.stringify({}) });
+      } catch {
+        logoutWarning = "Tu es déconnecté de cette page, mais Wishly n’a pas pu confirmer la révocation de la session côté serveur. Si tu es sur un appareil partagé, ferme aussi cet onglet.";
+      } finally {
+        sessionStorage.removeItem(TOKEN_KEY);
+        showAuth();
+      }
+      notice("notice", logoutWarning || "Tu es bien déconnecté.", Boolean(logoutWarning));
     });
     $("deleteAccountBtn").addEventListener("click", async () => {
       if(!confirm("Supprimer définitivement ton compte, tes listes et tes cadeaux ? Cette action est irréversible."))return;
