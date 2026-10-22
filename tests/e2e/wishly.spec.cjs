@@ -29,6 +29,13 @@ async function mockApi(page) {
     const method = request.method();
     let body = {};
     try { body = request.postDataJSON() || {}; } catch {}
+    if (method === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+      }});
+    }
     calls.push({ method, path, body });
 
     if (path === "health" && method === "GET") return json(route, { status: "ok", service: "wishly-api" });
