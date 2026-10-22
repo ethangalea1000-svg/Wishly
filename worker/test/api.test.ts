@@ -24,6 +24,15 @@ describe("Wishly API baseline security", () => {
     expect(response.status).toBe(503);
   });
 
+  it("keeps configuration errors readable to the configured frontend origin", async () => {
+    const response = await api.fetch(new Request("https://wishly.example/api/health", {
+      headers: { Origin: "https://wishly.example" }
+    }), { ...env, SESSION_PEPPER: "" } as Env);
+    expect(response.status).toBe(503);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://wishly.example");
+    expect(await response.json()).toEqual({ error: "Configuration serveur incomplète." });
+  });
+
   it("allows an HTTP origin only for local development", async () => {
     const localEnv = { ...env, APP_ORIGIN: "http://localhost:8788" } as Env;
     const response = await api.fetch(new Request("http://localhost:8788/api/health"), localEnv);
