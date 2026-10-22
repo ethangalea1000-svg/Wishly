@@ -1,7 +1,7 @@
   (() => {
     "use strict";
     const $ = (id) => document.getElementById(id);
-    const state = { mode: "login", user: null, lists: [], selected: null };
+    const state = { mode: "login", user: null, lists: [], selected: null, listLoadVersion: 0 };
     const API_BASE_URL = "https://wishly-production-api.ethan-galea1000.workers.dev";
     const TOKEN_KEY = "wishly_session_token";
     const notice = (id, message = "", error = false) => {
@@ -59,8 +59,11 @@
       $("logoutBtn").classList.add("hidden"); $("exportBtn").classList.add("hidden"); $("deleteAccountBtn").classList.add("hidden"); $("accountLabel").textContent = "";
     };
     async function loadLists() {
+      const requestVersion = ++state.listLoadVersion;
       try {
         const result = await api("lists");
+        // Ignore stale responses when list refreshes overlap (e.g. login + create list).
+        if (requestVersion !== state.listLoadVersion) return;
         state.lists = result.lists || [];
         renderLists();
         if (state.selected && state.lists.some(x => x.id === state.selected)) await openList(state.selected);
@@ -69,7 +72,9 @@
           state.selected = null;
           $("listDetail").innerHTML = '<div class="empty"><h2>Aucune liste pour le moment</h2>Crée ta première liste avec le formulaire à gauche.</div>';
         }
-      } catch (error) { notice("appNotice", error.message, true); }
+      } catch (error) {
+        if (requestVersion === state.listLoadVersion) notice("appNotice", error.message, true);
+      }
     }
     function renderLists() {
       const node = $("lists"); node.replaceChildren();
