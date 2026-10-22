@@ -4,7 +4,7 @@ compatibility_date = "2026-10-20"
 workers_dev = true
 
 [vars]
-APP_ORIGIN = "https://REPLACE-WITH-YOUR-PRODUCTION-DOMAIN"
+APP_ORIGIN = "https://ethangalea1000-svg.github.io"
 
 [[d1_databases]]
 binding = "DB"
