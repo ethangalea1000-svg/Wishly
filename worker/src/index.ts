@@ -85,11 +85,45 @@ async function getUser(request: Request, env: Env): Promise<SessionUser | null> 
     .bind(new Date().toISOString(), tokenHash).run();
   return row ?? null;
 }
+const MAX_JSON_BODY_BYTES = 64 * 1024;
+class BodyLimitError extends Error {}
+
 async function bodyJson(request: Request): Promise<Record<string, unknown> | null> {
   const type = request.headers.get("Content-Type") || "";
-  if (!type.toLowerCase().includes("application/json")) return null;
+  if (type.split(";")[0].trim().toLowerCase() !== "application/json") return null;
+
+  const declaredLength = request.headers.get("Content-Length");
+  if (declaredLength && /^\d+$/.test(declaredLength) && Number(declaredLength) > MAX_JSON_BODY_BYTES) {
+    throw new BodyLimitError("Corps JSON trop volumineux.");
+  }
+  if (!request.body) return null;
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
   try {
-    const value = await request.json();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_JSON_BODY_BYTES) {
+        await reader.cancel();
+        throw new BodyLimitError("Corps JSON trop volumineux.");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
   } catch { return null; }
 }
@@ -115,6 +149,9 @@ async function createSession(userId: string, env: Env): Promise<{token:string; e
 async function handle(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === "OPTIONS") {
+    if (request.headers.get("Origin") !== env.APP_ORIGIN) {
+      return new Response(null, { status: 403, headers: { "Vary": "Origin" } });
+    }
     return new Response(null, { status: 204, headers: {
       "Access-Control-Allow-Origin": env.APP_ORIGIN,
       "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
@@ -529,7 +566,8 @@ export default {
         return fail("Configuration serveur invalide.", 503);
       }
       return await handle(request, env);
-    } catch {
+    } catch (error) {
+      if (error instanceof BodyLimitError) return fail("Corps JSON trop volumineux (64 Kio maximum).", 413);
       return fail("Erreur interne. Réessaie plus tard.", 500);
     }
   }
