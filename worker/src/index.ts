@@ -22,6 +22,7 @@ function json(data: unknown, status = 200, extra: HeadersInit = {}): Response {
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set("X-Frame-Options", "DENY");
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   headers.set("Vary", "Origin");
   return new Response(JSON.stringify(data), { status, headers });
 }
