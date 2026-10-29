@@ -538,13 +538,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({list},200,headers);
   }
   if (listResource && request.method === "DELETE") {
-    const deletionWrites = await env.DB.batch([
+    const listToDelete = await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?")
+      .bind(listResource[1],user.id).first();
+    if(!listToDelete) return fail("Liste introuvable.",404);
+    await env.DB.batch([
       env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=?)")
         .bind(randomId(),user.id,"wishlist.delete","wishlist",listResource[1],listResource[1],user.id),
-      env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=? RETURNING id")
+      env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=?")
         .bind(listResource[1],user.id)
     ]);
-    if(!deletionWrites[1].results?.length) return fail("Liste introuvable.",404);
     return json({ok:true},200,headers);
   }
 
@@ -591,15 +593,17 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const [,,listId,itemId]=itemResource;
     const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
     if(!owned)return fail("Liste introuvable.",404);
-    const itemDeletionWrites = await env.DB.batch([
+    const existingItem = await env.DB.prepare("SELECT id FROM wishlist_items WHERE id=? AND wishlist_id=?")
+      .bind(itemId,listId).first();
+    if(!existingItem)return fail("Cadeau introuvable.",404);
+    await env.DB.batch([
       env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=? AND EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
         .bind(new Date().toISOString(),listId,itemId,listId),
       env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
         .bind(randomId(),user.id,"item.delete","wishlist_item",itemId,itemId,listId),
-      env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=? RETURNING id")
+      env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=?")
         .bind(itemId,listId)
     ]);
-    if(!itemDeletionWrites[2].results?.length)return fail("Cadeau introuvable.",404);
     return json({ok:true},200,headers);
   }
 
