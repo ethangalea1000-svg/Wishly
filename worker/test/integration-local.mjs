@@ -73,6 +73,22 @@ const createdList = await request("/api/lists", {
 const listId = createdList.data.list.id;
 assert.match(listId, /^[0-9a-f-]{36}$/i);
 
+const invalidDateUpdate = await request(`/api/lists/${listId}`, {
+  method: "PATCH",
+  token: loginToken,
+  expected: 400,
+  body: { eventDate: "2026-02-31" }
+});
+assert.deepEqual(invalidDateUpdate.data, { error: "Date invalide." });
+
+const validLeapDateUpdate = await request(`/api/lists/${listId}`, {
+  method: "PATCH",
+  token: loginToken,
+  expected: 200,
+  body: { eventDate: "2028-02-29" }
+});
+assert.equal(validLeapDateUpdate.data.list.event_date, "2028-02-29");
+
 const createdItem = await request(`/api/lists/${listId}/items`, {
   method: "POST",
   token: loginToken,
