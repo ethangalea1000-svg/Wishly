@@ -363,8 +363,18 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if(!owned)return fail("Liste introuvable.",404);
     const body=await bodyJson(request);
     if(body?.revoke===true){
-      await env.DB.prepare("UPDATE wishlists SET share_token=NULL,visibility='private',updated_at=? WHERE id=? AND owner_id=?")
-        .bind(new Date().toISOString(),listId,user.id).run();
+      const revokedAt = new Date().toISOString();
+      if (owned.share_token && owned.visibility === "unlisted") {
+        await env.DB.batch([
+          env.DB.prepare("UPDATE wishlists SET share_token=NULL,visibility='private',updated_at=? WHERE id=? AND owner_id=? AND share_token=? AND visibility='unlisted'")
+            .bind(revokedAt,listId,user.id,owned.share_token),
+          env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=? AND share_token IS NULL AND visibility='private' AND updated_at=?)")
+            .bind(randomId(),user.id,"wishlist.share.revoke","wishlist",listId,listId,user.id,revokedAt)
+        ]);
+      } else {
+        await env.DB.prepare("UPDATE wishlists SET share_token=NULL,visibility='private',updated_at=? WHERE id=? AND owner_id=?")
+          .bind(revokedAt,listId,user.id).run();
+      }
       return json({ok:true,shareUrl:null},200,headers);
     }
     const token=owned.share_token && owned.visibility === "unlisted" ? owned.share_token : randomToken();
@@ -397,8 +407,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if (eventDate !== null && (typeof eventDate !== "string" || !isValidDateOnly(eventDate))) return fail("Date invalide.");
     if (!/^[A-Z]{3}$/.test(currency)) return fail("Devise invalide.");
     const id = randomId();
-    await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
-      .bind(id, user.id, title, description, visibility, occasion, eventDate, currency).run();
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
+        .bind(id, user.id, title, description, visibility, occasion, eventDate, currency),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=?)")
+        .bind(randomId(), user.id, "wishlist.create", "wishlist", id, id, user.id)
+    ]);
     return json({ list: { id, title, description, visibility, occasion, eventDate, currency } }, 201, headers);
   }
 
@@ -449,9 +463,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if (quantity < 1 || quantity > 99 || priority < 1 || priority > 3) return fail("Quantité ou priorité invalide.");
     if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 0 || priceMinor > 100000000)) return fail("Prix invalide.");
     const id = randomId();
-    await env.DB.prepare(
-      "INSERT INTO wishlist_items(id,wishlist_id,title,url,description,category,price_minor,currency,quantity,priority) VALUES(?,?,?,?,?,?,?,?,?,?)"
-    ).bind(id, listId, title, urlValue, description, category, priceMinor, currency, quantity, priority).run();
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO wishlist_items(id,wishlist_id,title,url,description,category,price_minor,currency,quantity,priority) VALUES(?,?,?,?,?,?,?,?,?,?)"
+      ).bind(id, listId, title, urlValue, description, category, priceMinor, currency, quantity, priority),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
+        .bind(randomId(), user.id, "item.create", "wishlist_item", id, id, listId)
+    ]);
     return json({ item: { id, wishlistId: listId, title, url: urlValue, description, category, priceMinor, currency, quantity, priority, status: "wanted" } }, 201, headers);
   }
 
