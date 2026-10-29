@@ -252,7 +252,7 @@ describe("Wishly API baseline security", () => {
           "Content-Type": "application/json",
           "CF-Connecting-IP": "203.0.113.16"
         },
-        body: JSON.stringify({ guestName: "Guest\\nInjected" })
+        body: JSON.stringify({ guestName: "Guest\nInjected" })
       }
     ), env);
 
