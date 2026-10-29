@@ -104,6 +104,8 @@ jobs:
           exit 1
       - name: Exercise real registration, wishlist, sharing and guest reservation flows
         run: node test/integration-local.mjs
+      - name: Verify new audit coverage on local D1
+        run: node test/audit-coverage-local.mjs
       - name: Verify reservation changes roll back when audit writes fail
         run: node test/audit-atomicity-local.mjs
       - name: Verify authenticated business changes roll back when audit writes fail
