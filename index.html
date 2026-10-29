@@ -7,11 +7,11 @@
   <meta name="description" content="Wishly, des listes de cadeaux à créer et partager selon vos envies.">
   <title>Wishly — Toutes vos envies, réunies</title>
   <style>
-    :root{color-scheme:light;--ink:#29243a;--muted:#706a7b;--paper:#fbf7f2;--card:#fff;--pink:#f6dce5;--purple:#6e4f91;--line:#eee5e8}
+    :root{color-scheme:light;--ink:#29243a;--muted:#5f5871;--paper:#fbf7f2;--card:#fff;--pink:#f6dce5;--purple:#6e4f91;--line:#eee5e8}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6}
     a{color:inherit}.skip{position:absolute;left:-9999px;top:0;background:white;padding:.7rem}.skip:focus{left:1rem;z-index:5}
     header{max-width:1120px;margin:auto;padding:24px 24px;display:flex;justify-content:space-between;align-items:center;gap:20px}
-    .brand{font-size:1.55rem;font-weight:850;letter-spacing:-.06em;text-decoration:none}.brand span{color:var(--purple)}nav{display:flex;gap:20px;align-items:center;font-size:.94rem}nav a{text-decoration:none;color:var(--muted)}nav a:hover{text-decoration:underline}
+    .brand{font-size:1.55rem;font-weight:850;letter-spacing:-.06em;text-decoration:none}.brand span{color:var(--purple)}nav{display:flex;gap:20px;align-items:center;font-size:.94rem}nav a{text-decoration:none;color:var(--muted)}nav a:hover{text-decoration:underline}a:focus-visible{outline:3px solid var(--ink);outline-offset:3px;box-shadow:0 0 0 6px var(--card);border-radius:14px}footer a:hover,footer a:focus-visible{text-decoration:underline}
     .hero{max-width:1120px;margin:26px auto 0;padding:46px 24px 74px;display:grid;grid-template-columns:1.12fr .88fr;align-items:center;gap:46px}
     .eyebrow{display:inline-flex;gap:8px;align-items:center;border:1px solid #eadce6;background:#fff9fb;border-radius:999px;padding:7px 13px;color:#755a7f;font-size:.84rem;font-weight:700}
     h1{font-size:clamp(2.65rem,6vw,5rem);line-height:1.02;letter-spacing:-.065em;margin:20px 0}h1 em{font-style:normal;color:var(--purple)}.intro{font-size:1.12rem;color:var(--muted);max-width:590px}
@@ -25,19 +25,19 @@
     .section{padding:65px 24px}.section-inner{max-width:1040px;margin:auto}.section h2{text-align:center;font-size:clamp(1.8rem,4vw,2.7rem);letter-spacing:-.045em;margin:0 0 12px}.sub{text-align:center;color:var(--muted);max-width:650px;margin:0 auto 32px}
     .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.feature{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:23px}.feature .icon{font-size:1.7rem}.feature h3{margin:10px 0 5px;font-size:1.05rem}.feature p{margin:0;color:var(--muted);font-size:.94rem}
     .bottom-cta{background:#f0e7f4;border-radius:26px;padding:34px;text-align:center}.bottom-cta h2{margin-bottom:8px}.bottom-cta p{color:var(--muted);margin:0 0 20px}
-    footer{border-top:1px solid var(--line);padding:24px;text-align:center;color:var(--muted);font-size:.86rem}footer a{margin:0 8px}
-    @media(max-width:760px){header{padding:18px 18px;align-items:flex-start}.hero{grid-template-columns:1fr;padding:28px 18px 50px;gap:28px}.preview{min-height:340px;padding:18px}nav{gap:12px;font-size:.82rem;flex-wrap:wrap;justify-content:flex-end}.features{grid-template-columns:1fr}.section{padding:48px 18px}h1{font-size:clamp(2.6rem,13vw,4.2rem)}}
+    footer{border-top:1px solid var(--line);padding:24px;text-align:center;color:var(--muted);font-size:.86rem}footer a{margin:0 8px}footer a:hover,footer a:focus-visible{text-decoration:underline}
+    @media(max-width:760px){header{padding:18px 18px;align-items:flex-start}.hero{grid-template-columns:1fr;padding:28px 18px 50px;gap:28px}.preview{min-height:340px;padding:18px}nav{gap:12px;font-size:.82rem;flex-wrap:wrap;justify-content:flex-end}nav a{display:inline-flex;align-items:center;min-height:44px;padding:10px 4px}.features{grid-template-columns:1fr}.section{padding:48px 18px}h1{font-size:clamp(2.6rem,13vw,4.2rem)}}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
   </style>
 </head>
 <body>
   <a class="skip" href="#mainContent">Aller directement au contenu</a>
   <header>
-    <a class="brand" href="./" aria-label="Wishly, accueil">wish<span>ly</span> ✳</a>
+    <a class="brand" href="./" aria-label="Wishly, accueil">wish<span>ly</span> <span aria-hidden="true">✳</span></a>
     <nav aria-label="Navigation principale">
       <a href="#fonctionnalites">Fonctionnalités</a>
-      <a href="./communaute.html">💬 Communauté</a>
-      <a href="./confidentialite.html">🔒 Confidentialité</a>
+      <a href="./communaute.html"><span aria-hidden="true">💬</span> Communauté</a>
+      <a href="./confidentialite.html"><span aria-hidden="true">🔒</span> Confidentialité</a>
       <a href="./admin-demo.html">Administration démo</a>
       <a href="./demo-anniversaire.html">Invitation démo</a>
     </nav>
@@ -45,7 +45,7 @@
   <main id="mainContent">
     <section class="hero">
       <div>
-        <div class="eyebrow">🎁 Vos envies, au même endroit</div>
+        <div class="eyebrow"><span aria-hidden="true">🎁</span> Vos envies, au même endroit</div>
         <h1>Les cadeaux qui font <em>plaisir</em>.</h1>
         <p class="intro">Créez une liste d’envies, partagez-la avec vos proches et retrouvez facilement les idées de cadeaux. Chacun peut réserver ce qu’il souhaite offrir pour éviter que deux personnes choisissent le même cadeau.</p>
         <div class="actions">
@@ -56,10 +56,10 @@
         </div>
         <p class="note">Aperçu fictif : les prénoms et les idées de cadeaux sont des exemples.</p>
       </div>
-      <div class="preview" aria-label="Aperçu illustratif d’une liste de cadeaux">
+      <div class="preview" aria-hidden="true">
         <div class="blob one"></div><div class="blob two"></div>
         <div class="mock">
-          <div class="mock-top"><span>✳ WISHLY</span><span>Liste exemple</span></div>
+          <div class="mock-top"><span><span aria-hidden="true">✳</span> WISHLY</span><span>Liste exemple</span></div>
           <h2>Liste de démonstration</h2>
           <p>Des idées pour un anniversaire, Noël ou une autre occasion à célébrer.</p>
           <div class="gift"><div class="gift-icon">🎁</div><div><strong>Cadeau 1</strong></div></div>
@@ -83,7 +83,7 @@
       <div class="section-inner bottom-cta">
         <h2>Envie de découvrir Wishly ?</h2>
         <p>Ouvrez la liste de démonstration de Camille pour explorer l’interface.</p>
-        <a class="btn primary" href="./liste-demo.html">Ouvrir la liste de démonstration →</a>
+        <a class="btn primary" href="./liste-demo.html">Ouvrir la liste de démonstration <span aria-hidden="true">→</span></a>
       </div>
     </section>
   </main>
