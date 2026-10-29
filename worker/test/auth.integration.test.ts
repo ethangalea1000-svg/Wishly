@@ -58,19 +58,14 @@ beforeEach(async () => {
   mf = new Miniflare({
     workers: [{
       config: {
-        name: "wishly-auth-test-worker",
-        main: "src/index.ts",
-        compatibility_date: "2026-10-20",
-        vars: {
+        compatibilityDate: "2026-10-20",
+        bindings: {
           APP_ORIGIN,
           SESSION_PEPPER,
         },
-        d1_databases: [{
-          binding: "DB",
-          database_name: "wishly-auth-tests",
-          database_id: crypto.randomUUID(),
-          migrations_dir: "migrations",
-        }],
+        d1Databases: {
+          DB: "wishly-auth-tests-" + crypto.randomUUID(),
+        },
       },
     }],
   });
