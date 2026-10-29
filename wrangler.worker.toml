@@ -1,0 +1,11 @@
+name = "wishly-production-api"
+main = "worker/src/index.ts"
+compatibility_date = "2026-10-20"
+
+[vars]
+APP_ORIGIN = "https://ethangalea1000-svg.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "wishly-production-db"
+database_id = "3287b8ce-2e1d-4ce0-865d-77706ba49388"
