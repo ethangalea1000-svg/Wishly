@@ -55,6 +55,10 @@ const item = await request(`/api/lists/${listId}/items`, {
   body: { title: "Atomic authenticated gift", quantity: 2 }
 });
 const itemId = item.data.item.id;
+const initialShare = await request(`/api/lists/${listId}/share`, {
+  method: "POST", token, expected: 200, body: {}
+});
+const initialShareToken = initialShare.data.shareToken;
 
 let triggerCreated = false;
 try {
@@ -64,11 +68,36 @@ try {
   );
   triggerCreated = true;
 
+  const listCountBeforeFailedCreate = (await request("/api/lists", { token })).data.lists.length;
+  await request("/api/lists", {
+    method: "POST", token, expected: 500, body: { title: "Must Not Persist" }
+  });
+  let lists = await request("/api/lists", { token });
+  assert.equal(lists.data.lists.length, listCountBeforeFailedCreate,
+    "failed list-create audit must roll back list creation");
+
+  const itemCountBeforeFailedCreate = (await request(`/api/lists/${listId}`, { token })).data.items.length;
+  await request(`/api/lists/${listId}/items`, {
+    method: "POST", token, expected: 500, body: { title: "Must Not Persist" }
+  });
+  let state = await request(`/api/lists/${listId}`, { token });
+  assert.equal(state.data.items.length, itemCountBeforeFailedCreate,
+    "failed item-create audit must roll back gift creation");
+
   await request(`/api/lists/${listId}/share`, {
     method: "POST", token, expected: 500, body: {}
   });
-  let state = await request(`/api/lists/${listId}`, { token });
-  assert.equal(state.data.list.visibility, "private", "failed share audit must roll back sharing");
+  state = await request(`/api/lists/${listId}`, { token });
+  assert.equal(state.data.list.visibility, "unlisted", "failed share audit must preserve existing sharing");
+  const stillShared = await request(`/api/shared/${initialShareToken}`);
+  assert.equal(stillShared.data.list.id, listId, "failed share audit must preserve the original share token");
+
+  await request(`/api/lists/${listId}/share`, {
+    method: "POST", token, expected: 500, body: { revoke: true }
+  });
+  const shareAfterFailedRevoke = await request(`/api/shared/${initialShareToken}`);
+  assert.equal(shareAfterFailedRevoke.data.list.id, listId,
+    "failed revocation audit must roll back share revocation");
 
   await request(`/api/lists/${listId}/archive`, {
     method: "POST", token, expected: 500, body: {}
