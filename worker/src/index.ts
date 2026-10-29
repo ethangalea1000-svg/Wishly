@@ -144,10 +144,13 @@ async function bodyJson(request: Request): Promise<Record<string, unknown> | nul
     reader.releaseLock();
   }
 }
+function hasControlCharacters(value: string): boolean {
+  return /[\x00-\x1F\x7F]/.test(value);
+}
 function cleanText(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
   const result = value.trim();
-  if (/[\x00-\x1F\x7F]/.test(result)) return null;
+  if (hasControlCharacters(result)) return null;
   return result.length > 0 && result.length <= max ? result : null;
 }
 function isValidDateOnly(value: string): boolean {
@@ -376,6 +379,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const description = typeof body?.description === "string" ? body.description.trim().slice(0, 2000) : "";
     const visibility = body?.visibility === "public" || body?.visibility === "unlisted" ? body.visibility : "private";
     const occasion = typeof body?.occasion === "string" ? body.occasion.trim().slice(0,80) : null;
+    if (occasion !== null && hasControlCharacters(occasion)) return fail("Occasion invalide.");
     const eventDate = body?.eventDate == null || body?.eventDate === "" ? null : body.eventDate;
     const currency = typeof body?.currency === "string" ? body.currency : "EUR";
     if (!title || /[<>]/.test(title)) return fail("Titre invalide.");
@@ -494,7 +498,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       if (body.visibility === "private") { fields.push("share_token=?"); values.push(null); }
     }
     if ("occasion" in body) {
-      if(body.occasion!==null && (typeof body.occasion!=="string" || body.occasion.length>80)) return fail("Occasion invalide.");
+      if(body.occasion!==null && (typeof body.occasion!=="string" || body.occasion.length>80 || hasControlCharacters(body.occasion))) return fail("Occasion invalide.");
       fields.push("occasion=?"); values.push(body.occasion);
     }
     if ("eventDate" in body) {
@@ -534,7 +538,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const fields:string[]=[]; const values:unknown[]=[];
     if("title" in body){const v=cleanText(body.title,160);if(!v||/[<>]/.test(v))return fail("Titre invalide.");fields.push("title=?");values.push(v);}
     if("description" in body){if(typeof body.description!=="string"||body.description.length>2000)return fail("Description invalide.");fields.push("description=?");values.push(body.description.trim());}
-    if("category" in body){if(body.category!==null&&(typeof body.category!=="string"||body.category.length>80))return fail("Catégorie invalide.");fields.push("category=?");values.push(body.category);}
+    if("category" in body){if(body.category!==null&&(typeof body.category!=="string"||body.category.length>80||hasControlCharacters(body.category)))return fail("Catégorie invalide.");fields.push("category=?");values.push(body.category);}
     if("url" in body){
       let value:string|null=null;
       if(body.url!==null&&body.url!==""){
