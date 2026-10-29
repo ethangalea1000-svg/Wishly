@@ -106,7 +106,7 @@ async function getUser(request: Request, env: Env): Promise<SessionUser | null> 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 async function bodyJson(request: Request): Promise<Record<string, unknown> | null> {
   const type = request.headers.get("Content-Type") || "";
-  if (!type.toLowerCase().split(";")[0].trim().includes("application/json")) return null;
+  if (type.toLowerCase().split(";")[0].trim() !== "application/json") return null;
 
   const contentLength = request.headers.get("Content-Length");
   if (contentLength !== null) {
