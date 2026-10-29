@@ -48,6 +48,22 @@ const login = await request("/api/auth/login", {
 assert.match(login.data.sessionToken, /^[a-f0-9]{64}$/);
 const loginToken = login.data.sessionToken;
 
+const invalidCalendarDate = await request("/api/lists", {
+  method: "POST",
+  token: loginToken,
+  expected: 400,
+  body: { title: "Invalid calendar date", eventDate: "2026-02-31" }
+});
+assert.deepEqual(invalidCalendarDate.data, { error: "Date invalide." });
+
+const leapDayList = await request("/api/lists", {
+  method: "POST",
+  token: loginToken,
+  expected: 201,
+  body: { title: "Leap day test", eventDate: "2028-02-29" }
+});
+assert.equal(leapDayList.data.list.eventDate, "2028-02-29");
+await request(`/api/lists/${leapDayList.data.list.id}`, { method: "DELETE", token: loginToken, expected: 200 });
 const createdList = await request("/api/lists", {
   method: "POST",
   token: loginToken,

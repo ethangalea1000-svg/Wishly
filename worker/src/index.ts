@@ -150,6 +150,11 @@ function cleanText(value: unknown, max: number): string | null {
   if (/[\x00-\x1F\x7F]/.test(result)) return null;
   return result.length > 0 && result.length <= max ? result : null;
 }
+function isValidDateOnly(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value + "T00:00:00.000Z");
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
 function normalizeGiftUrl(value: string): string {
   const parsed = new URL(value);
   parsed.hash = "";
@@ -374,7 +379,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const eventDate = body?.eventDate == null || body?.eventDate === "" ? null : body.eventDate;
     const currency = typeof body?.currency === "string" ? body.currency : "EUR";
     if (!title || /[<>]/.test(title)) return fail("Titre invalide.");
-    if (eventDate !== null && (typeof eventDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate) || Number.isNaN(Date.parse(eventDate)))) return fail("Date invalide.");
+    if (eventDate !== null && (typeof eventDate !== "string" || !isValidDateOnly(eventDate))) return fail("Date invalide.");
     if (!/^[A-Z]{3}$/.test(currency)) return fail("Devise invalide.");
     const id = randomId();
     await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
