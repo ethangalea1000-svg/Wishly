@@ -57,10 +57,21 @@ function tokenHash(token: string): string {
 beforeEach(async () => {
   mf = new Miniflare({
     workers: [{
-      name: "wishly-auth-test-worker",
-      script: "export default { fetch() { return new Response('test') } }",
-      modules: true,
-      d1Databases: { DB: "wishly-auth-tests-" + crypto.randomUUID() },
+      config: {
+        name: "wishly-auth-test-worker",
+        main: "src/index.ts",
+        compatibility_date: "2026-10-20",
+        vars: {
+          APP_ORIGIN,
+          SESSION_PEPPER,
+        },
+        d1_databases: [{
+          binding: "DB",
+          database_name: "wishly-auth-tests",
+          database_id: crypto.randomUUID(),
+          migrations_dir: "migrations",
+        }],
+      },
     }],
   });
   db = await mf.getD1Database("DB");
@@ -69,7 +80,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await mf.dispose();
+  if (mf) await mf.dispose();
 });
 
 describe("Wishly auth flows with isolated local D1", () => {
