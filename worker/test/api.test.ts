@@ -192,6 +192,37 @@ describe("Wishly API baseline security", () => {
     });
   });
 
+  it("rejects JSON request bodies larger than 64 KiB", async () => {
+    const response = await api.fetch(new Request("https://wishly.example/api/auth/register", {
+      method: "POST",
+      headers: {
+        Origin: "https://wishly.example",
+        "Content-Type": "application/json",
+        "CF-Connecting-IP": "203.0.113.13"
+      },
+      body: JSON.stringify({ padding: "x".repeat(65 * 1024) })
+    }), env);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Corps JSON invalide." });
+  });
+
+  it("rejects malformed JSON content-length headers", async () => {
+    const response = await api.fetch(new Request("https://wishly.example/api/auth/register", {
+      method: "POST",
+      headers: {
+        Origin: "https://wishly.example",
+        "Content-Type": "application/json",
+        "Content-Length": "not-a-number",
+        "CF-Connecting-IP": "203.0.113.14"
+      },
+      body: JSON.stringify({ email: "test@example.com", displayName: "Test", password: "this-is-a-test-password" })
+    }), env);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Corps JSON invalide." });
+  });
+
   it("does not answer unknown routes as successful responses", async () => {
     const response = await api.fetch(new Request("https://wishly.example/api/not-a-route"), env);
     expect(response.status).toBe(401);
