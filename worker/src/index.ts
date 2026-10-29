@@ -498,7 +498,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       fields.push("occasion=?"); values.push(body.occasion);
     }
     if ("eventDate" in body) {
-      if(body.eventDate!==null && (typeof body.eventDate!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.eventDate) || Number.isNaN(Date.parse(body.eventDate)))) return fail("Date invalide.");
+      if(body.eventDate!==null && (typeof body.eventDate!=="string" || !isValidDateOnly(body.eventDate))) return fail("Date invalide.");
       fields.push("event_date=?"); values.push(body.eventDate);
     }
     if ("currency" in body) {
