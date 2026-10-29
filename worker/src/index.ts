@@ -290,12 +290,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const reservationId=randomId();
     const cancelToken=randomToken();
     const tokenHash=await sha256(env.SESSION_PEPPER+":"+cancelToken);
-    const created=await env.DB.prepare(
-      "INSERT INTO reservations(id,item_id,guest_name,cancel_token_hash,status) SELECT ?,?,?,?,'active' WHERE (SELECT COUNT(*) FROM reservations WHERE item_id=? AND status='active') < ?"
-    ).bind(reservationId,item.id,guestName,tokenHash,item.id,item.quantity).run();
-    if(!created.meta.changes)return fail("Ce cadeau vient d'être entièrement réservé. Actualise la liste.",409);
-    await env.DB.prepare("INSERT INTO audit_events(id,action,entity_type,entity_id) VALUES(?,?,?,?)")
-      .bind(randomId(),"reservation.create","reservation",reservationId).run();
+    const reservationWrites = await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO reservations(id,item_id,guest_name,cancel_token_hash,status) SELECT ?,?,?,?,'active' WHERE (SELECT COUNT(*) FROM reservations WHERE item_id=? AND status='active') < ?"
+      ).bind(reservationId,item.id,guestName,tokenHash,item.id,item.quantity),
+      env.DB.prepare(
+        "INSERT INTO audit_events(id,action,entity_type,entity_id) SELECT ?,?,?,? WHERE EXISTS (SELECT 1 FROM reservations WHERE id=? AND cancel_token_hash=? AND status='active')"
+      ).bind(randomId(),"reservation.create","reservation",reservationId,reservationId,tokenHash)
+    ]);
+    if(!reservationWrites[0].meta.changes)return fail("Ce cadeau vient d'être entièrement réservé. Actualise la liste.",409);
     return json({ok:true,reservationId,cancellationToken:cancelToken,message:"Garde ce code pour annuler ta réservation."},201,headers);
   }
   const cancelMatch=url.pathname.match(/^\/api\/reservations\/([0-9a-f-]{36})\/cancel$/i);
@@ -305,11 +308,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const cancelToken=typeof body?.cancellationToken==="string"?body.cancellationToken:"";
     if(!/^[a-f0-9]{64}$/.test(cancelToken))return fail("Code d'annulation invalide.",403);
     const tokenHash=await sha256(env.SESSION_PEPPER+":"+cancelToken);
-    const result=await env.DB.prepare("UPDATE reservations SET status='cancelled',updated_at=? WHERE id=? AND cancel_token_hash=? AND status='active'")
-      .bind(new Date().toISOString(),cancelMatch[1],tokenHash).run();
-    if(!result.meta.changes)return fail("Réservation introuvable ou déjà annulée.",404);
-    await env.DB.prepare("INSERT INTO audit_events(id,action,entity_type,entity_id) VALUES(?,?,?,?)")
-      .bind(randomId(),"reservation.cancel","reservation",cancelMatch[1]).run();
+    const cancelledAt = new Date().toISOString();
+    const cancellationWrites = await env.DB.batch([
+      env.DB.prepare("UPDATE reservations SET status='cancelled',updated_at=? WHERE id=? AND cancel_token_hash=? AND status='active'")
+        .bind(cancelledAt,cancelMatch[1],tokenHash),
+      env.DB.prepare(
+        "INSERT INTO audit_events(id,action,entity_type,entity_id) SELECT ?,?,?,? WHERE EXISTS (SELECT 1 FROM reservations WHERE id=? AND cancel_token_hash=? AND status='cancelled' AND updated_at=?)"
+      ).bind(randomId(),"reservation.cancel","reservation",cancelMatch[1],cancelMatch[1],tokenHash,cancelledAt)
+    ]);
+    if(!cancellationWrites[0].meta.changes)return fail("Réservation introuvable ou déjà annulée.",404);
     return json({ok:true},200,headers);
   }
 
