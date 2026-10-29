@@ -160,7 +160,7 @@ test("une ancienne réponse de détail ne remplace pas la liste sélectionnée e
   await page.route(API + "/**", async route => {
     const request = route.request();
     const url = new URL(request.url());
-    const path = url.pathname.replace(/^\\/api\\//, "");
+    const path = url.pathname.replace(/^\/api\//, "");
     const method = request.method();
 
     if (method === "OPTIONS") {
