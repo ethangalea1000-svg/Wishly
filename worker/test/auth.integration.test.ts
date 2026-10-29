@@ -1,7 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { readFile } from "node:fs/promises";
-import { Miniflare } from "miniflare";
-import { createHash } from "node:crypto";
+import { beforeEach, describe, expect, it } from "vitest";
+import { env } from "cloudflare:test";
 import api from "../src/index";
 
 const APP_ORIGIN = "https://ethangalea1000-svg.github.io";
@@ -9,30 +7,14 @@ const API_ORIGIN = "https://wishly-test.local";
 const SESSION_PEPPER = "test-only-session-pepper-not-a-production-secret-123";
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 
-let mf: Miniflare;
-let db: D1Database;
-let env: { DB: D1Database; APP_ORIGIN: string; SESSION_PEPPER: string };
-
 async function scalar(sql: string): Promise<number> {
-  const row = await db.prepare(sql).first<{ count: number }>();
+  const row = await env.DB.prepare(sql).first<{ count: number }>();
   return Number(row?.count ?? 0);
-}
-
-async function applyMigrations() {
-  for (const name of [
-    "0001_initial.sql",
-    "0002_sharing_reservations.sql",
-    "0003_unique_gift_urls.sql",
-  ]) {
-    const sql = await readFile(new URL("../migrations/" + name, import.meta.url), "utf8");
-    await db.exec(sql);
-  }
 }
 
 function jsonRequest(path: string, body: string, options: { origin?: string; contentType?: string; method?: string; token?: string } = {}) {
   const headers = new Headers();
-  if (options.origin !== undefined) headers.set("Origin", options.origin);
-  else headers.set("Origin", APP_ORIGIN);
+  headers.set("Origin", options.origin ?? APP_ORIGIN);
   if (options.contentType !== "") headers.set("Content-Type", options.contentType ?? "application/json");
   if (options.token) headers.set("Authorization", "Bearer " + options.token);
   return new Request(API_ORIGIN + path, {
@@ -45,38 +27,16 @@ function jsonRequest(path: string, body: string, options: { origin?: string; con
 async function register(email = "auth-flow@example.test") {
   const response = await api.fetch(jsonRequest("/api/auth/register", JSON.stringify({
     email, displayName: "Test Auth", password: "a-long-test-password-123"
-  })), env as never);
+  })), env);
   const data = await response.json() as { user?: { id: string }; sessionToken?: string; expiresAt?: string; error?: string };
   return { response, data };
 }
 
-function tokenHash(token: string): string {
-  return createHash("sha256").update(SESSION_PEPPER + ":" + token).digest("hex");
+async function tokenHash(token: string): Promise<string> {
+  const input = new TextEncoder().encode(SESSION_PEPPER + ":" + token);
+  const digest = await crypto.subtle.digest("SHA-256", input);
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
-
-beforeEach(async () => {
-  mf = new Miniflare({
-    workers: [{
-      config: {
-        compatibilityDate: "2026-10-20",
-        bindings: {
-          APP_ORIGIN,
-          SESSION_PEPPER,
-        },
-        d1Databases: {
-          DB: "wishly-auth-tests-" + crypto.randomUUID(),
-        },
-      },
-    }],
-  });
-  db = await mf.getD1Database("DB");
-  env = { DB: db, APP_ORIGIN, SESSION_PEPPER };
-  await applyMigrations();
-});
-
-afterEach(async () => {
-  if (mf) await mf.dispose();
-});
 
 describe("Wishly auth flows with isolated local D1", () => {
   it("registers, resolves the session, logs in, and revokes the session on logout", async () => {
@@ -89,22 +49,22 @@ describe("Wishly auth flows with isolated local D1", () => {
     const firstSession = created.data.sessionToken!;
     const me = await api.fetch(new Request(API_ORIGIN + "/api/auth/me", {
       headers: { Origin: APP_ORIGIN, Authorization: "Bearer " + firstSession },
-    }), env as never);
+    }), env);
     expect(me.status).toBe(200);
     expect((await me.json() as { user: { email: string } }).user.email).toBe("auth-flow@example.test");
 
     const login = await api.fetch(jsonRequest("/api/auth/login", JSON.stringify({
       email: "AUTH-FLOW@example.test", password: "a-long-test-password-123",
-    })), env as never);
+    })), env);
     const loginData = await login.json() as { sessionToken?: string };
     expect(login.status).toBe(200);
     expect(loginData.sessionToken).toMatch(/^[a-f0-9]{64}$/);
 
-    const logout = await api.fetch(jsonRequest("/api/auth/logout", "{}", { token: loginData.sessionToken }), env as never);
+    const logout = await api.fetch(jsonRequest("/api/auth/logout", "{}", { token: loginData.sessionToken }), env);
     expect(logout.status).toBe(200);
     const afterLogout = await api.fetch(new Request(API_ORIGIN + "/api/auth/me", {
       headers: { Origin: APP_ORIGIN, Authorization: "Bearer " + loginData.sessionToken },
-    }), env as never);
+    }), env);
     expect(afterLogout.status).toBe(401);
     expect(await scalar("SELECT COUNT(*) AS count FROM users")).toBe(1);
     expect(await scalar("SELECT COUNT(*) AS count FROM sessions")).toBe(1);
@@ -114,12 +74,12 @@ describe("Wishly auth flows with isolated local D1", () => {
     const created = await register("expiry@example.test");
     expect(created.response.status).toBe(201);
     const token = created.data.sessionToken!;
-    await db.prepare("UPDATE sessions SET expires_at=? WHERE token_hash=?")
-      .bind("2000-01-01T00:00:00.000Z", tokenHash(token)).run();
+    await env.DB.prepare("UPDATE sessions SET expires_at=? WHERE token_hash=?")
+      .bind("2000-01-01T00:00:00.000Z", await tokenHash(token)).run();
 
     const response = await api.fetch(new Request(API_ORIGIN + "/api/auth/me", {
       headers: { Origin: APP_ORIGIN, Authorization: "Bearer " + token },
-    }), env as never);
+    }), env);
     expect(response.status).toBe(401);
   });
 
@@ -128,7 +88,7 @@ describe("Wishly auth flows with isolated local D1", () => {
     expect(created.response.status).toBe(201);
     const response = await api.fetch(jsonRequest("/api/auth/login", JSON.stringify({
       email: "wrong-password@example.test", password: "not-the-right-password",
-    })), env as never);
+    })), env);
     expect(response.status).toBe(401);
     expect(await scalar("SELECT COUNT(*) AS count FROM sessions")).toBe(1);
   });
@@ -142,7 +102,7 @@ describe("Origin, JSON parsing and request-size boundaries", () => {
       headers.set("Access-Control-Request-Method", "POST");
       const response = await api.fetch(new Request(API_ORIGIN + "/api/auth/register", {
         method: "OPTIONS", headers,
-      }), env as never);
+      }), env);
       expect(response.status).toBe(403);
       expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
     }
@@ -153,16 +113,16 @@ describe("Origin, JSON parsing and request-size boundaries", () => {
   it("rejects foreign-origin mutations before touching the database", async () => {
     const response = await api.fetch(jsonRequest("/api/auth/register", JSON.stringify({
       email: "foreign@example.test", displayName: "Foreign", password: "a-long-test-password-123",
-    }), { origin: "https://attacker.example" }), env as never);
+    }), { origin: "https://attacker.example" }), env);
     expect(response.status).toBe(403);
     expect(await scalar("SELECT COUNT(*) AS count FROM users")).toBe(0);
     expect(await scalar("SELECT COUNT(*) AS count FROM rate_limits")).toBe(0);
   });
 
   it("rejects malformed JSON and non-JSON content types", async () => {
-    const malformed = await api.fetch(jsonRequest("/api/auth/register", "{", { contentType: "application/json" }), env as never);
+    const malformed = await api.fetch(jsonRequest("/api/auth/register", "{", { contentType: "application/json" }), env);
     expect(malformed.status).toBe(400);
-    const wrongType = await api.fetch(jsonRequest("/api/auth/register", "{}", { contentType: "text/plain" }), env as never);
+    const wrongType = await api.fetch(jsonRequest("/api/auth/register", "{}", { contentType: "text/plain" }), env);
     expect(wrongType.status).toBe(400);
     expect(await scalar("SELECT COUNT(*) AS count FROM users")).toBe(0);
   });
@@ -175,7 +135,7 @@ describe("Origin, JSON parsing and request-size boundaries", () => {
       padding: "x".repeat(MAX_JSON_BODY_BYTES),
     });
     expect(new TextEncoder().encode(body).byteLength).toBeGreaterThan(MAX_JSON_BODY_BYTES);
-    const response = await api.fetch(jsonRequest("/api/auth/register", body), env as never);
+    const response = await api.fetch(jsonRequest("/api/auth/register", body), env);
     expect(response.status).toBe(413);
     expect(await scalar("SELECT COUNT(*) AS count FROM users")).toBe(0);
   });
