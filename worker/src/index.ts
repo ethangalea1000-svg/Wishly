@@ -147,7 +147,7 @@ async function bodyJson(request: Request): Promise<Record<string, unknown> | nul
 function cleanText(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
   const result = value.trim();
-  if (/[\\u0000-\\u001F\\u007F]/.test(result)) return null;
+  if (/[\x00-\x1F\x7F]/.test(result)) return null;
   return result.length > 0 && result.length <= max ? result : null;
 }
 function normalizeGiftUrl(value: string): string {
