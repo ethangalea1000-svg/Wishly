@@ -246,6 +246,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   const cancelMatch=url.pathname.match(/^\/api\/reservations\/([0-9a-f-]{36})\/cancel$/i);
   if(cancelMatch && request.method==="POST"){
+    if(!(await rateLimit(request,env,"reservation-cancel",15)))return fail("Trop de tentatives. Réessaie plus tard.",429);
     const body=await bodyJson(request);
     const cancelToken=typeof body?.cancellationToken==="string"?body.cancellationToken:"";
     if(!/^[a-f0-9]{64}$/.test(cancelToken))return fail("Code d'annulation invalide.",403);

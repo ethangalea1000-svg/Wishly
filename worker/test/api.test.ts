@@ -1,14 +1,21 @@
 import { describe, expect, it } from "vitest";
 import api from "../src/index";
 
-function fakeDb() {
-  const statement = {
-    bind(..._values: unknown[]) { return this; },
-    async first<T>() { return { ok: 1 } as T; },
-    async run() { return { meta: { changes: 1 } }; },
-    async all() { return { results: [] }; }
-  };
-  return { prepare(_sql: string) { return statement; } } as unknown as D1Database;
+function fakeDb(rateLimitCount = 0) {
+  return {
+    prepare(sql: string) {
+      const statement = {
+        bind(..._values: unknown[]) { return this; },
+        async first<T>() {
+          if (sql.includes("SELECT count FROM rate_limits")) return { count: rateLimitCount } as T;
+          return { ok: 1 } as T;
+        },
+        async run() { return { meta: { changes: 1 } }; },
+        async all() { return { results: [] }; }
+      };
+      return statement;
+    }
+  } as unknown as D1Database;
 }
 const env = {
   DB: fakeDb(),
@@ -112,6 +119,25 @@ describe("Wishly API baseline security", () => {
       body: "{}"
     }), env);
     expect(response.status).toBe(403);
+  });
+
+  it("rate-limits public reservation cancellation attempts", async () => {
+    const limitedEnv = { ...env, DB: fakeDb(16) } as Env;
+    const response = await api.fetch(new Request(
+      "https://wishly.example/api/reservations/123e4567-e89b-42d3-a456-426614174000/cancel",
+      {
+        method: "POST",
+        headers: {
+          Origin: "https://wishly.example",
+          "Content-Type": "application/json",
+          "CF-Connecting-IP": "203.0.113.10"
+        },
+        body: JSON.stringify({ cancellationToken: "a".repeat(64) })
+      }
+    ), limitedEnv);
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({ error: "Trop de tentatives. Réessaie plus tard." });
   });
 
   it("does not answer unknown routes as successful responses", async () => {
