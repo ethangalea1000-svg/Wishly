@@ -150,3 +150,60 @@ test("un lien de partage invalide est refusé sans requête API", async ({ page 
   await expect(page.locator("#notice")).toContainText("Lien de partage invalide.");
   expect(calls.some(call => call.path.startsWith("shared/"))).toBe(false);
 });
+
+
+test("une ancienne réponse de détail ne remplace pas la liste sélectionnée ensuite", async ({ page }) => {
+  const LIST_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const LIST_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const calls = [];
+
+  await page.route(API + "/**", async route => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname.replace(/^\\/api\\//, "");
+    const method = request.method();
+
+    if (method === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+      }});
+    }
+
+    calls.push({ method, path });
+    if (path === "auth/login" && method === "POST") {
+      return json(route, { user: { id: "user-race", email: "race@example.test", displayName: "Test", role: "user" }, sessionToken: "d".repeat(64) });
+    }
+    if (path === "lists" && method === "GET") {
+      return json(route, { lists: [
+        { id: LIST_A, title: "Liste A lente", description: "Réponse différée" },
+        { id: LIST_B, title: "Liste B choisie", description: "Réponse rapide" },
+      ] });
+    }
+    if (path === "lists/" + LIST_A && method === "GET") {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      return json(route, { list: { id: LIST_A, title: "Liste A lente", description: "Réponse différée", currency: "EUR" }, items: [] });
+    }
+    if (path === "lists/" + LIST_B && method === "GET") {
+      return json(route, { list: { id: LIST_B, title: "Liste B choisie", description: "Réponse rapide", currency: "EUR" }, items: [] });
+    }
+    return json(route, { error: "Route de test non simulée : " + method + " " + path }, 501);
+  });
+
+  await page.goto("/index.html");
+  await page.getByLabel("Adresse e-mail").fill("race@example.test");
+  await page.getByLabel("Mot de passe").fill("mot-de-passe-test-123");
+  await page.getByRole("button", { name: "Se connecter" }).click();
+
+  await expect(page.locator("#appView")).toBeVisible();
+  const listBButton = page.locator("#lists button").filter({ hasText: "Liste B choisie" });
+  await expect(listBButton).toBeVisible();
+  await listBButton.click();
+
+  await expect(page.getByRole("heading", { name: "Liste B choisie" })).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.getByRole("heading", { name: "Liste B choisie" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Liste A lente" })).toHaveCount(0);
+  expect(calls.filter(call => call.method === "GET" && call.path.startsWith("lists/")).length).toBeGreaterThanOrEqual(2);
+});
