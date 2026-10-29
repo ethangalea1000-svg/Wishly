@@ -73,6 +73,14 @@ const createdList = await request("/api/lists", {
 const listId = createdList.data.list.id;
 assert.match(listId, /^[0-9a-f-]{36}$/i);
 
+const invalidOccasionUpdate = await request(`/api/lists/${listId}`, {
+  method: "PATCH",
+  token: loginToken,
+  expected: 400,
+  body: { occasion: "Birthday\nInjected" }
+});
+assert.deepEqual(invalidOccasionUpdate.data, { error: "Occasion invalide." });
+
 const invalidDateUpdate = await request(`/api/lists/${listId}`, {
   method: "PATCH",
   token: loginToken,
@@ -99,6 +107,14 @@ const itemId = createdItem.data.item.id;
 assert.equal(createdItem.data.item.title, "Test gift");
 assert.equal(createdItem.data.item.priceMinor, 1299);
 assert.equal(createdItem.data.item.url, "https://example.com/gift?a=1&b=2");
+
+const invalidCategoryUpdate = await request(`/api/lists/${listId}/items/${itemId}`, {
+  method: "PATCH",
+  token: loginToken,
+  expected: 400,
+  body: { category: "Books\nInjected" }
+});
+assert.deepEqual(invalidCategoryUpdate.data, { error: "Catégorie invalide." });
 
 const ownerList = await request(`/api/lists/${listId}`, { token: loginToken });
 assert.equal(ownerList.data.items.length, 1);
