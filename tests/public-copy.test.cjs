@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const html = fs.readFileSync(path.join(__dirname, "..", "..", "index.html"), "utf8");
+const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("le titre utilise un balisage HTML correct, sans Markdown brut", () => {
   assert.match(html, /<h1>Les cadeaux qui font <em>plaisir<\/em>\.<\/h1>/);
