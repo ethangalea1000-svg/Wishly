@@ -147,6 +147,7 @@ async function bodyJson(request: Request): Promise<Record<string, unknown> | nul
 function cleanText(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
   const result = value.trim();
+  if (/[\\u0000-\\u001F\\u007F]/.test(result)) return null;
   return result.length > 0 && result.length <= max ? result : null;
 }
 function normalizeGiftUrl(value: string): string {
@@ -272,7 +273,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
       .bind(publicReserveMatch[1]).first<{id:string}>();
     if(!list)return fail("Liste introuvable.",404);
     const body=await bodyJson(request);
-    const guestName=cleanText(body?.guestName,60);
+    if(!body)return fail("Corps JSON invalide.");
+    const guestName=cleanText(body.guestName,60);
     if(!guestName||/[<>]/.test(guestName))return fail("Nom invalide.");
     const item=await env.DB.prepare("SELECT id,quantity FROM wishlist_items WHERE id=? AND wishlist_id=?")
       .bind(publicReserveMatch[2],list.id).first<{id:string;quantity:number}>();
