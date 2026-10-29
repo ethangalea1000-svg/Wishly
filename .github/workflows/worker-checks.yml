@@ -104,6 +104,8 @@ jobs:
           exit 1
       - name: Exercise real registration, wishlist, sharing and guest reservation flows
         run: node test/integration-local.mjs
+      - name: Verify reservation changes roll back when audit writes fail
+        run: node test/audit-atomicity-local.mjs
       - name: Show Worker logs if integration fails
         if: failure()
         run: cat /tmp/wishly-local-worker.log
