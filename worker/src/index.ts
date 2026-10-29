@@ -66,15 +66,26 @@ function originAllowed(request: Request, env: Env): boolean {
   const origin = request.headers.get("Origin");
   return !origin || origin === env.APP_ORIGIN;
 }
+class RateLimitUnavailableError extends Error {
+  constructor() {
+    super("Rate-limit storage unavailable");
+    this.name = "RateLimitUnavailableError";
+  }
+}
 async function rateLimit(request: Request, env: Env, bucket: string, max = 12): Promise<boolean> {
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const key = await sha256(`${env.SESSION_PEPPER}:${bucket}:${ip}`);
   const now = Math.floor(Date.now() / 60000);
-  await env.DB.prepare(
-    "INSERT INTO rate_limits(bucket_key,count,window_started_at) VALUES(?,1,?) ON CONFLICT(bucket_key) DO UPDATE SET count=CASE WHEN window_started_at=? THEN count+1 ELSE 1 END, window_started_at=?"
-  ).bind(key, now, now, now).run();
-  const row = await env.DB.prepare("SELECT count FROM rate_limits WHERE bucket_key=?").bind(key).first<{count:number}>();
-  return (row?.count ?? 0) <= max;
+  try {
+    await env.DB.prepare(
+      "INSERT INTO rate_limits(bucket_key,count,window_started_at) VALUES(?,1,?) ON CONFLICT(bucket_key) DO UPDATE SET count=CASE WHEN window_started_at=? THEN count+1 ELSE 1 END, window_started_at=?"
+    ).bind(key, now, now, now).run();
+    const row = await env.DB.prepare("SELECT count FROM rate_limits WHERE bucket_key=?").bind(key).first<{count:number}>();
+    return (row?.count ?? 0) <= max;
+  } catch {
+    // Never bypass rate limiting when its persistent storage is unavailable.
+    throw new RateLimitUnavailableError();
+  }
 }
 function sessionTokenFromRequest(request: Request): string | undefined {
   const authorization = request.headers.get("Authorization") || "";
@@ -562,13 +573,16 @@ export default {
         });
       }
       return response;
-    } catch {
+    } catch (error) {
       const origin = request.headers.get("Origin");
       const corsHeaders: HeadersInit = origin === env.APP_ORIGIN ? {
         "Access-Control-Allow-Origin": env.APP_ORIGIN,
         "Access-Control-Allow-Credentials": "true",
         "Vary": "Origin"
       } : {};
+      if (error instanceof RateLimitUnavailableError) {
+        return fail("Limitation de débit temporairement indisponible.", 503, corsHeaders);
+      }
       return fail("Erreur interne. Réessaie plus tard.", 500, corsHeaders);
     }
   }
