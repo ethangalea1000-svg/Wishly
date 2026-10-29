@@ -108,7 +108,7 @@ try {
   await request(`/api/lists/${listId}/duplicate`, {
     method: "POST", token, expected: 500
   });
-  let lists = await request("/api/lists", { token });
+  lists = await request("/api/lists", { token });
   assert.equal(lists.data.lists.length, 1, "failed duplicate audit must roll back the copied list");
 
   await request(`/api/lists/${listId}`, {
