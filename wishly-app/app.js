@@ -1,7 +1,7 @@
   (() => {
     "use strict";
     const $ = (id) => document.getElementById(id);
-    const state = { mode: "login", user: null, lists: [], selected: null, listLoadVersion: 0 };
+    const state = { mode: "login", user: null, lists: [], selected: null, listLoadVersion: 0, detailLoadVersion: 0 };
     const API_BASE_URL = "https://wishly-production-api.ethan-galea1000.workers.dev";
     const TOKEN_KEY = "wishly_session_token";
     const notice = (id, message = "", error = false) => {
@@ -91,8 +91,10 @@
     }
     async function openList(id) {
       state.selected = id; renderLists();
+      const requestVersion = ++state.detailLoadVersion;
       try {
         const result = await api("lists/" + encodeURIComponent(id));
+        if (requestVersion !== state.detailLoadVersion || state.selected !== id) return;
         const list = result.list; const items = result.items || [];
         const detail = $("listDetail"); detail.replaceChildren();
         const heading = document.createElement("div"); heading.className = "row between";
