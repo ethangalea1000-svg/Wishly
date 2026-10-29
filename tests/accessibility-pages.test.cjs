@@ -67,7 +67,9 @@ test("la liste de démonstration donne un nom accessible aux champs des formulai
     ["ideaText", "Ton idée"],
   ];
   for (const [id, label] of fields) {
-    assert.match(listDemo, new RegExp('<(?:input|textarea|select)\\b[^>]*id="' + id + '"[^>]*aria-label="' + label.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&") + '"'));
+    const tag = listDemo.match(new RegExp('<(?:input|textarea|select)\\b[^>]*id="' + id + '"[^>]*>'))?.[0];
+    assert.ok(tag, "champ trouvé : " + id);
+    assert.ok(tag.includes('aria-label="' + label + '"'), "nom accessible attendu pour " + id);
   }
   assert.equal((listDemo.match(/id="birthdayWallText"/g) || []).length, 1, "l’identifiant du champ de message doit être unique");
 });
