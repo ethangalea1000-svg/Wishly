@@ -56,9 +56,12 @@ function tokenHash(token: string): string {
 
 beforeEach(async () => {
   mf = new Miniflare({
-    script: "export default { fetch() { return new Response('test') } }",
-    modules: true,
-    d1Databases: { DB: "wishly-auth-tests-" + crypto.randomUUID() },
+    workers: [{
+      name: "wishly-auth-test-worker",
+      script: "export default { fetch() { return new Response('test') } }",
+      modules: true,
+      d1Databases: { DB: "wishly-auth-tests-" + crypto.randomUUID() },
+    }],
   });
   db = await mf.getD1Database("DB");
   env = { DB: db, APP_ORIGIN, SESSION_PEPPER };
