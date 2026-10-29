@@ -110,7 +110,7 @@ async function bodyJson(request: Request): Promise<Record<string, unknown> | nul
 
   const contentLength = request.headers.get("Content-Length");
   if (contentLength !== null) {
-    if (!/^\\d+$/.test(contentLength) || Number(contentLength) > MAX_JSON_BODY_BYTES) return null;
+    if (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_JSON_BODY_BYTES) return null;
   }
 
   const reader = request.body?.getReader();
