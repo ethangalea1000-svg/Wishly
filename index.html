@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#fbf7f2">
-  <meta name="description" content="Wishly, une démonstration fictive pour créer et partager des listes de cadeaux selon vos envies.">
+  <meta name="description" content="Wishly, des listes de cadeaux à créer et partager selon vos envies.">
   <title>Wishly — Toutes vos envies, réunies</title>
   <style>
     :root{color-scheme:light;--ink:#29243a;--muted:#706a7b;--paper:#fbf7f2;--card:#fff;--pink:#f6dce5;--purple:#6e4f91;--line:#eee5e8}
@@ -20,8 +20,8 @@
     .preview{position:relative;min-height:390px;border-radius:30px;background:linear-gradient(145deg,#f3e6ef,#e9e3f7 58%,#f8e9dc);padding:28px;display:flex;align-items:center;justify-content:center;overflow:hidden}
     .blob{position:absolute;border-radius:50%;background:#fff7;filter:blur(1px)}.blob.one{width:180px;height:180px;right:-45px;top:-35px}.blob.two{width:140px;height:140px;left:-35px;bottom:-35px}
     .mock{position:relative;width:min(100%,320px);background:#fff;border:1px solid #ffffffd9;border-radius:22px;padding:22px;box-shadow:0 24px 60px #43324b24;transform:rotate(2deg)}
-    .mock-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.78rem}.mock h2{font-size:1.5rem;letter-spacing:-.04em;margin:12px 0 4px}.mock p{font-size:.84rem;color:var(--muted);margin:0 0 16px}
-    .gift{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #f1ebf0}.gift-icon{width:44px;height:44px;display:grid;place-items:center;background:#fbf0f5;border-radius:13px;font-size:1.4rem}.gift strong{display:block;font-size:.9rem}.gift small{color:var(--muted)}.price{margin-left:auto;font-size:.82rem;font-weight:750;white-space:nowrap}
+    .mock-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:.78rem}.mock h2{font-size:1.5rem;letter-spacing:-.04em;margin:12px 0 4px}.mock p{font-size:.84rem;color:var(--muted);margin:0 0 16px}
+    .gift{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #f1ebf0}.gift-icon{width:44px;height:44px;display:grid;place-items:center;background:#fbf0f5;border-radius:13px;font-size:1.4rem}.gift strong{display:block;font-size:.9rem}
     .section{padding:65px 24px}.section-inner{max-width:1040px;margin:auto}.section h2{text-align:center;font-size:clamp(1.8rem,4vw,2.7rem);letter-spacing:-.045em;margin:0 0 12px}.sub{text-align:center;color:var(--muted);max-width:650px;margin:0 auto 32px}
     .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.feature{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:23px}.feature .icon{font-size:1.7rem}.feature h3{margin:10px 0 5px;font-size:1.05rem}.feature p{margin:0;color:var(--muted);font-size:.94rem}
     .bottom-cta{background:#f0e7f4;border-radius:26px;padding:34px;text-align:center}.bottom-cta h2{margin-bottom:8px}.bottom-cta p{color:var(--muted);margin:0 0 20px}
@@ -46,49 +46,49 @@
     <section class="hero">
       <div>
         <div class="eyebrow">🎁 Vos envies, au même endroit</div>
-        <h1>Les cadeaux qui font <em>plaisir.</em></h1>
-        <p class="intro">Créez une liste d'envies, partagez-la avec vos proches et gardez les idées de cadeaux bien organisées. Avec Wishly, chacun sait quoi offrir — sans doublons.</p>
+        <h1>Les cadeaux qui font <em>plaisir</em>.</h1>
+        <p class="intro">Créez une liste d’envies, partagez-la avec vos proches et retrouvez facilement les idées de cadeaux. Chacun peut réserver ce qu’il souhaite offrir pour éviter que deux personnes choisissent le même cadeau.</p>
         <div class="actions">
           <a class="btn primary" href="./liste-demo.html">Découvrir la démo <span aria-hidden="true">→</span></a>
           <a class="btn secondary" href="#fonctionnalites">Comment ça marche ?</a>
           <a class="btn secondary" href="./admin-demo.html">Tester l’administration</a>
-          <a class="btn secondary" href="./demo-anniversaire.html">Voir invitation et cadeaux fictifs</a>
+          <a class="btn secondary" href="./demo-anniversaire.html">Découvrir l’invitation de démonstration</a>
         </div>
-        <p class="note">Démo fictive uniquement : les noms, listes et contenus sont des exemples.</p>
+        <p class="note">Aperçu fictif : les prénoms et les idées de cadeaux sont des exemples.</p>
       </div>
-      <div class="preview" aria-label="Aperçu illustratif d'une liste de cadeaux">
+      <div class="preview" aria-label="Aperçu illustratif d’une liste de cadeaux">
         <div class="blob one"></div><div class="blob two"></div>
         <div class="mock">
           <div class="mock-top"><span>✳ WISHLY</span><span>Liste exemple</span></div>
           <h2>Liste de démonstration</h2>
-          <p>Quelques idées pour une occasion spéciale.</p>
-          <div class="gift"><div class="gift-icon">🎁</div><div><strong>Cadeau 1</strong><small>Idée fictive</small></div><span class="price">—</span></div>
-          <div class="gift"><div class="gift-icon">🎁</div><div><strong>Cadeau 2</strong><small>Idée fictive</small></div><span class="price">—</span></div>
-          <div class="gift"><div class="gift-icon">🎁</div><div><strong>Cadeau 3</strong><small>Idée fictive</small></div><span class="price">—</span></div>
+          <p>Des idées pour un anniversaire, Noël ou une autre occasion à célébrer.</p>
+          <div class="gift"><div class="gift-icon">🎁</div><div><strong>Cadeau 1</strong></div></div>
+          <div class="gift"><div class="gift-icon">🎁</div><div><strong>Cadeau 2</strong></div></div>
+          <div class="gift"><div class="gift-icon">🎁</div><div><strong>Cadeau 3</strong></div></div>
         </div>
       </div>
     </section>
     <section class="section" id="fonctionnalites">
       <div class="section-inner">
         <h2>Une liste simple, pensée pour partager</h2>
-        <p class="sub">Toutes les idées de cadeaux réunies dans un espace clair, avec une démonstration qui permet de découvrir le parcours sans utiliser de données réelles.</p>
+        <p class="sub">Rassemblez vos envies, partagez-les avec vos proches et coordonnez-vous pour choisir les cadeaux.</p>
         <div class="features">
-          <article class="feature"><div class="icon" aria-hidden="true">📝</div><h3>Rassembler ses envies</h3><p>Regroupez les idées, ajoutez un prix indicatif et retrouvez facilement vos inspirations.</p></article>
-          <article class="feature"><div class="icon" aria-hidden="true">🔗</div><h3>Partager facilement</h3><p>Imaginez une liste à partager avec vos amis ou votre famille pour une occasion spéciale.</p></article>
-          <article class="feature"><div class="icon" aria-hidden="true">🎀</div><h3>Éviter les doublons</h3><p>Découvrez le principe de réservation des cadeaux grâce à une liste entièrement fictive.</p></article>
+          <article class="feature"><div class="icon" aria-hidden="true">📝</div><h3>Rassembler ses envies</h3><p>Regroupez vos idées, ajoutez un prix indicatif et retrouvez facilement vos inspirations.</p></article>
+          <article class="feature"><div class="icon" aria-hidden="true">🔗</div><h3>Partager facilement</h3><p>Partagez votre liste avec vos proches pour qu’ils puissent choisir un cadeau qui vous fera plaisir.</p></article>
+          <article class="feature"><div class="icon" aria-hidden="true">🎀</div><h3>Se coordonner pour offrir</h3><p>Réservez un cadeau déjà choisi pour que les autres sachent qu’il est pris.</p></article>
         </div>
       </div>
     </section>
     <section class="section" style="padding-top:0">
       <div class="section-inner bottom-cta">
-        <h2>Prêt à découvrir Wishly ?</h2>
-        <p>Ouvre la liste de démonstration de Camille pour explorer l'interface.</p>
+        <h2>Envie de découvrir Wishly ?</h2>
+        <p>Ouvrez la liste de démonstration de Camille pour explorer l’interface.</p>
         <a class="btn primary" href="./liste-demo.html">Ouvrir la liste de démonstration →</a>
       </div>
     </section>
   </main>
   <footer>
-    <div>Wishly · Prototype fictif · 2026</div>
+    <div>Wishly · 2026</div>
     <div><a href="./communaute.html">Communauté</a><a href="./confidentialite.html">Confidentialité</a><a href="./admin-demo.html">Administration démo</a><a href="./demo-anniversaire.html">Invitation démo</a></div>
   </footer>
 </body>
