@@ -1,7 +1,7 @@
   (() => {
     "use strict";
     const $ = (id) => document.getElementById(id);
-    const state = { mode: "login", user: null, lists: [], selected: null, listLoadVersion: 0 };
+    const state = { mode: "login", user: null, lists: [], selected: null, listLoadVersion: 0, detailLoadVersion: 0 };
     const API_BASE_URL = "https://wishly-production-api.ethan-galea1000.workers.dev";
     const TOKEN_KEY = "wishly_session_token";
     const notice = (id, message = "", error = false) => {
@@ -54,6 +54,8 @@
       loadLists();
     };
     const showAuth = () => {
+      state.listLoadVersion++;
+      state.detailLoadVersion++;
       state.user = null; state.lists = []; state.selected = null;
       $("authView").classList.remove("hidden"); $("appView").classList.add("hidden");
       $("logoutBtn").classList.add("hidden"); $("exportBtn").classList.add("hidden"); $("deleteAccountBtn").classList.add("hidden"); $("accountLabel").textContent = "";
@@ -90,9 +92,11 @@
       });
     }
     async function openList(id) {
+      const requestVersion = ++state.detailLoadVersion;
       state.selected = id; renderLists();
       try {
         const result = await api("lists/" + encodeURIComponent(id));
+        if (requestVersion !== state.detailLoadVersion || state.selected !== id) return;
         const list = result.list; const items = result.items || [];
         const detail = $("listDetail"); detail.replaceChildren();
         const heading = document.createElement("div"); heading.className = "row between";
@@ -223,7 +227,9 @@
           } catch (error) { notice("appNotice", error.message, true); }
         });
         detail.append(form);
-      } catch (error) { notice("appNotice", error.message, true); }
+      } catch (error) {
+        if (requestVersion === state.detailLoadVersion && state.selected === id) notice("appNotice", error.message, true);
+      }
     }
     $("showLogin").addEventListener("click", () => setMode("login"));
     $("showRegister").addEventListener("click", () => setMode("register"));
