@@ -42,3 +42,41 @@ test("la politique de confidentialité a un lien d’évitement et un focus clav
   assert.match(privacy, /a:focus-visible\{outline:3px solid #6553c8;outline-offset:3px\}/);
   assert.match(privacy, /Version de travail/);
 });
+
+const listDemo = fs.readFileSync(path.join(root, "liste-demo.html"), "utf8");
+
+test("la liste de démonstration donne un nom accessible aux champs des formulaires", () => {
+  const fields = [
+    ["accessRequestName", "Ton prénom ou nom"],
+    ["accessRequestRelation", "Lien avec Camille"],
+    ["accessRequestAvatar", "Ton emoji (optionnel)"],
+    ["accessRequestBio", "Présentation (optionnel)"],
+    ["birthdayWallText", "Ton message"],
+    ["birthdayGalleryUrl", "URL de la photo"],
+    ["birthdayGalleryCaption", "Légende de la photo (optionnel)"],
+    ["fundraiserTitle", "Nom de la cagnotte"],
+    ["fundraiserGoal", "Objectif de la cagnotte en euros"],
+    ["fundraiserDescription", "Description de la cagnotte (optionnel)"],
+    ["suggestGift", "Nom du cadeau proposé"],
+    ["suggestLink", "Lien vers le cadeau proposé (optionnel)"],
+    ["suggestMessage", "Pourquoi proposes-tu ce cadeau ? (optionnel)"],
+    ["fundraiserSelect", "Choisir une cagnotte"],
+    ["contribAmount", "Montant de la participation en euros"],
+    ["contribMessage", "Message pour la participation (optionnel)"],
+    ["messageText", "Ton message"],
+    ["ideaText", "Ton idée"],
+  ];
+  for (const [id, label] of fields) {
+    const tag = listDemo.match(new RegExp('<(?:input|textarea|select)\\b[^>]*id="' + id + '"[^>]*>'))?.[0];
+    assert.ok(tag, "champ trouvé : " + id);
+    assert.ok(tag.includes('aria-label="' + label + '"'), "nom accessible attendu pour " + id);
+  }
+  assert.equal((listDemo.match(/id="birthdayWallText"/g) || []).length, 1, "l’identifiant du champ de message doit être unique");
+});
+
+test("la liste de démonstration garde un focus clavier contrasté sur fond clair et foncé", () => {
+  assert.match(listDemo, /button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible\{outline:3px solid #30338a;outline-offset:3px;box-shadow:0 0 0 6px #fff\}/);
+  assert.match(listDemo, /button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible\{outline:3px solid #30338a;outline-offset:3px;box-shadow:0 0 0 6px #fff\}/);
+  assert.doesNotMatch(listDemo, /outline:3px solid rgba\(91,92,226,\.35\)/);
+  assert.ok(contrastRatio("#30338a", "#ffffff") >= 3);
+});
