@@ -54,6 +54,27 @@ describe("Wishly API baseline security", () => {
     expect(response.headers.get("x-frame-options")).toBe("DENY");
     expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
     expect(response.headers.get("permissions-policy")).toContain("geolocation=()");
+    expect(response.headers.get("strict-transport-security")).toBe("max-age=31536000; includeSubDomains");
+  });
+
+  it("applies security headers to CORS preflight responses", async () => {
+    const response = await api.fetch(new Request("https://wishly.example/api/auth/login", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://wishly.example",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,authorization"
+      }
+    }), env);
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("strict-transport-security")).toBe("max-age=31536000; includeSubDomains");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("x-frame-options")).toBe("DENY");
+    expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    expect(response.headers.get("permissions-policy")).toContain("geolocation=()");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://wishly.example");
   });
 
   it("allows credentialed CORS only for the configured application origin", async () => {
