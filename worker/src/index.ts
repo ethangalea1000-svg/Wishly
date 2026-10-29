@@ -590,7 +590,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({item},200,headers);
   }
   if(itemResource && request.method==="DELETE"){
-    const [,,listId,itemId]=itemResource;
+    const [,listId,itemId]=itemResource;
     const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
     if(!owned)return fail("Liste introuvable.",404);
     const existingItem = await env.DB.prepare("SELECT id FROM wishlist_items WHERE id=? AND wishlist_id=?")
