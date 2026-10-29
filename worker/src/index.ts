@@ -346,9 +346,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if(confirmEmail!==account.email.toLowerCase()||password.length===0||password.length>128)return fail("Confirmation invalide.",403);
     const calculated=await derivePassword(password,account.password_salt,account.password_iterations);
     if(calculated!==account.password_hash)return fail("Confirmation invalide.",403);
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(),user.id,"account.delete","user",user.id).run();
-    await env.DB.prepare("DELETE FROM users WHERE id=?").bind(user.id).run();
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
+        .bind(randomId(),user.id,"account.delete","user",user.id),
+      env.DB.prepare("DELETE FROM users WHERE id=?").bind(user.id)
+    ]);
     headers.append("Set-Cookie",clearCookie());
     return json({ok:true},200,headers);
   }
@@ -366,10 +368,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
       return json({ok:true,shareUrl:null},200,headers);
     }
     const token=owned.share_token && owned.visibility === "unlisted" ? owned.share_token : randomToken();
-    await env.DB.prepare("UPDATE wishlists SET share_token=?,visibility='unlisted',updated_at=? WHERE id=? AND owner_id=?")
-      .bind(token,new Date().toISOString(),listId,user.id).run();
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(),user.id,"wishlist.share","wishlist",listId).run();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE wishlists SET share_token=?,visibility='unlisted',updated_at=? WHERE id=? AND owner_id=?")
+        .bind(token,new Date().toISOString(),listId,user.id),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=? AND share_token=? AND visibility='unlisted')")
+        .bind(randomId(),user.id,"wishlist.share","wishlist",listId,listId,user.id,token)
+    ]);
     return json({shareToken:token,sharePath:"/shared/"+token,visibility:"unlisted"},200,headers);
   }
 
@@ -459,10 +463,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
       .bind(listId, user.id).first<{id:string;archived_at:string|null}>();
     if (!owned) return fail("Liste introuvable.", 404);
     const archivedAt = owned.archived_at ? null : new Date().toISOString();
-    await env.DB.prepare("UPDATE wishlists SET archived_at=?,updated_at=? WHERE id=? AND owner_id=?")
-      .bind(archivedAt, new Date().toISOString(), listId, user.id).run();
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(), user.id, archivedAt ? "wishlist.archive" : "wishlist.restore", "wishlist", listId).run();
+    const archiveUpdatedAt = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE wishlists SET archived_at=?,updated_at=? WHERE id=? AND owner_id=?")
+        .bind(archivedAt, archiveUpdatedAt, listId, user.id),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=? AND archived_at IS ? AND updated_at=?)")
+        .bind(randomId(), user.id, archivedAt ? "wishlist.archive" : "wishlist.restore", "wishlist", listId, listId, user.id, archivedAt, archiveUpdatedAt)
+    ]);
     return json({ ok:true, archivedAt }, 200, headers);
   }
   if (listAction && listAction[2].toLowerCase() === "duplicate" && request.method === "POST") {
@@ -472,12 +479,14 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if (!source) return fail("Liste introuvable.", 404);
     const newId = randomId();
     const newTitle = (source.title + " (copie)").slice(0,100);
-    await env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
-      .bind(newId, user.id, newTitle, source.description, "private", source.occasion, source.event_date, source.currency).run();
-    await env.DB.prepare("INSERT INTO wishlist_items(id,wishlist_id,title,url,image_url,description,category,price_minor,currency,quantity,priority,status) SELECT lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6))),?,title,url,image_url,description,category,price_minor,currency,quantity,priority,'wanted' FROM wishlist_items WHERE wishlist_id=?")
-      .bind(newId, listId).run();
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(), user.id, "wishlist.duplicate", "wishlist", newId).run();
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO wishlists(id,owner_id,title,description,visibility,occasion,event_date,currency) VALUES(?,?,?,?,?,?,?,?)")
+        .bind(newId, user.id, newTitle, source.description, "private", source.occasion, source.event_date, source.currency),
+      env.DB.prepare("INSERT INTO wishlist_items(id,wishlist_id,title,url,image_url,description,category,price_minor,currency,quantity,priority,status) SELECT lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6))),?,title,url,image_url,description,category,price_minor,currency,quantity,priority,'wanted' FROM wishlist_items WHERE wishlist_id=?")
+        .bind(newId, listId),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=?)")
+        .bind(randomId(), user.id, "wishlist.duplicate", "wishlist", newId, newId, user.id)
+    ]);
     return json({ list:{id:newId,title:newTitle,description:source.description,visibility:"private"} },201,headers);
   }
 
@@ -519,18 +528,25 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if (!fields.length) return fail("Aucune modification fournie.");
     fields.push("updated_at=?"); values.push(new Date().toISOString());
     values.push(listId,user.id);
-    await env.DB.prepare("UPDATE wishlists SET "+fields.join(",")+" WHERE id=? AND owner_id=?").bind(...values).run();
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(),user.id,"wishlist.update","wishlist",listId).run();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE wishlists SET "+fields.join(",")+" WHERE id=? AND owner_id=?").bind(...values),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=?)")
+        .bind(randomId(),user.id,"wishlist.update","wishlist",listId,listId,user.id)
+    ]);
     const list=await env.DB.prepare("SELECT id,title,description,visibility,occasion,event_date,currency,archived_at,created_at,updated_at FROM wishlists WHERE id=? AND owner_id=?")
       .bind(listId,user.id).first();
     return json({list},200,headers);
   }
   if (listResource && request.method === "DELETE") {
-    const result=await env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=?").bind(listResource[1],user.id).run();
-    if(!result.meta.changes) return fail("Liste introuvable.",404);
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(),user.id,"wishlist.delete","wishlist",listResource[1]).run();
+    const listToDelete = await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?")
+      .bind(listResource[1],user.id).first();
+    if(!listToDelete) return fail("Liste introuvable.",404);
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=?)")
+        .bind(randomId(),user.id,"wishlist.delete","wishlist",listResource[1],listResource[1],user.id),
+      env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=?")
+        .bind(listResource[1],user.id)
+    ]);
     return json({ok:true},200,headers);
   }
 
@@ -563,23 +579,31 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if("currency" in body){if(typeof body.currency!=="string"||! /^[A-Z]{3}$/.test(body.currency))return fail("Devise invalide.");fields.push("currency=?");values.push(body.currency);}
     if(!fields.length)return fail("Aucune modification fournie.");
     fields.push("updated_at=?");values.push(new Date().toISOString());values.push(itemId,listId);
-    await env.DB.prepare("UPDATE wishlist_items SET "+fields.join(",")+" WHERE id=? AND wishlist_id=?").bind(...values).run();
-    await env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=?").bind(new Date().toISOString(),listId).run();
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(),user.id,"item.update","wishlist_item",itemId).run();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE wishlist_items SET "+fields.join(",")+" WHERE id=? AND wishlist_id=?").bind(...values),
+      env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=?").bind(new Date().toISOString(),listId),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
+        .bind(randomId(),user.id,"item.update","wishlist_item",itemId,itemId,listId)
+    ]);
     const item=await env.DB.prepare("SELECT id,title,url,image_url,description,category,price_minor,currency,quantity,priority,status,created_at,updated_at FROM wishlist_items WHERE id=? AND wishlist_id=?")
       .bind(itemId,listId).first();
     return json({item},200,headers);
   }
   if(itemResource && request.method==="DELETE"){
-    const [,,listId,itemId]=itemResource;
+    const [,listId,itemId]=itemResource;
     const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
     if(!owned)return fail("Liste introuvable.",404);
-    const result=await env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=?").bind(itemId,listId).run();
-    if(!result.meta.changes)return fail("Cadeau introuvable.",404);
-    await env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=?").bind(new Date().toISOString(),listId).run();
-    await env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
-      .bind(randomId(),user.id,"item.delete","wishlist_item",itemId).run();
+    const existingItem = await env.DB.prepare("SELECT id FROM wishlist_items WHERE id=? AND wishlist_id=?")
+      .bind(itemId,listId).first();
+    if(!existingItem)return fail("Cadeau introuvable.",404);
+    await env.DB.batch([
+      env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=? AND EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
+        .bind(new Date().toISOString(),listId,itemId,listId),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
+        .bind(randomId(),user.id,"item.delete","wishlist_item",itemId,itemId,listId),
+      env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=?")
+        .bind(itemId,listId)
+    ]);
     return json({ok:true},200,headers);
   }
 
