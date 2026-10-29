@@ -1,16 +1,24 @@
 import { describe, expect, it } from "vitest";
 import api from "../src/index";
 
-function fakeDb(rateLimitCount = 0) {
+function fakeDb(rateLimitCount = 0, rateLimitFailure?: "write" | "read") {
   return {
     prepare(sql: string) {
       const statement = {
         bind(..._values: unknown[]) { return this; },
         async first<T>() {
-          if (sql.includes("SELECT count FROM rate_limits")) return { count: rateLimitCount } as T;
+          if (sql.includes("SELECT count FROM rate_limits")) {
+            if (rateLimitFailure === "read") throw new Error("simulated D1 read failure");
+            return { count: rateLimitCount } as T;
+          }
           return { ok: 1 } as T;
         },
-        async run() { return { meta: { changes: 1 } }; },
+        async run() {
+          if (sql.includes("INSERT INTO rate_limits") && rateLimitFailure === "write") {
+            throw new Error("simulated D1 write failure");
+          }
+          return { meta: { changes: 1 } };
+        },
         async all() { return { results: [] }; }
       };
       return statement;
@@ -138,6 +146,50 @@ describe("Wishly API baseline security", () => {
 
     expect(response.status).toBe(429);
     expect(await response.json()).toEqual({ error: "Trop de tentatives. Réessaie plus tard." });
+  });
+
+  it("returns 503 and fails closed when D1 cannot write the rate-limit counter", async () => {
+    const unavailableEnv = { ...env, DB: fakeDb(0, "write") } as Env;
+    const response = await api.fetch(new Request(
+      "https://wishly.example/api/reservations/123e4567-e89b-42d3-a456-426614174000/cancel",
+      {
+        method: "POST",
+        headers: {
+          Origin: "https://wishly.example",
+          "Content-Type": "application/json",
+          "CF-Connecting-IP": "203.0.113.11"
+        },
+        body: JSON.stringify({ cancellationToken: "a".repeat(64) })
+      }
+    ), unavailableEnv);
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://wishly.example");
+    expect(await response.json()).toEqual({
+      error: "Limitation de débit temporairement indisponible."
+    });
+  });
+
+  it("returns 503 and fails closed when D1 cannot read the rate-limit counter", async () => {
+    const unavailableEnv = { ...env, DB: fakeDb(0, "read") } as Env;
+    const response = await api.fetch(new Request(
+      "https://wishly.example/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          Origin: "https://wishly.example",
+          "Content-Type": "application/json",
+          "CF-Connecting-IP": "203.0.113.12"
+        },
+        body: JSON.stringify({ email: "test@example.com", password: "not-a-real-password" })
+      }
+    ), unavailableEnv);
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://wishly.example");
+    expect(await response.json()).toEqual({
+      error: "Limitation de débit temporairement indisponible."
+    });
   });
 
   it("does not answer unknown routes as successful responses", async () => {
