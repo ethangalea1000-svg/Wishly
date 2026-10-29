@@ -223,6 +223,61 @@ describe("Wishly API baseline security", () => {
     expect(await response.json()).toEqual({ error: "Corps JSON invalide." });
   });
 
+  it("rejects display names containing embedded control characters", async () => {
+    const response = await api.fetch(new Request("https://wishly.example/api/auth/register", {
+      method: "POST",
+      headers: {
+        Origin: "https://wishly.example",
+        "Content-Type": "application/json",
+        "CF-Connecting-IP": "203.0.113.15"
+      },
+      body: JSON.stringify({
+        email: "control-name@example.com",
+        displayName: "Valid\tInjected",
+        password: "this-is-a-test-password"
+      })
+    }), env);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Nom affiché invalide." });
+  });
+
+  it("rejects guest reservation names containing embedded control characters", async () => {
+    const response = await api.fetch(new Request(
+      `https://wishly.example/api/shared/${"a".repeat(64)}/items/123e4567-e89b-42d3-a456-426614174000/reservations`,
+      {
+        method: "POST",
+        headers: {
+          Origin: "https://wishly.example",
+          "Content-Type": "application/json",
+          "CF-Connecting-IP": "203.0.113.16"
+        },
+        body: JSON.stringify({ guestName: "Guest\\nInjected" })
+      }
+    ), env);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Nom invalide." });
+  });
+
+  it("rejects malformed JSON on guest reservation requests explicitly", async () => {
+    const response = await api.fetch(new Request(
+      `https://wishly.example/api/shared/${"a".repeat(64)}/items/123e4567-e89b-42d3-a456-426614174000/reservations`,
+      {
+        method: "POST",
+        headers: {
+          Origin: "https://wishly.example",
+          "Content-Type": "application/json",
+          "CF-Connecting-IP": "203.0.113.17"
+        },
+        body: "{not-json"
+      }
+    ), env);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Corps JSON invalide." });
+  });
+
   it("does not answer unknown routes as successful responses", async () => {
     const response = await api.fetch(new Request("https://wishly.example/api/not-a-route"), env);
     expect(response.status).toBe(401);
