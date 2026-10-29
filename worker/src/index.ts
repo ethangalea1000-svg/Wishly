@@ -539,11 +539,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   if (listResource && request.method === "DELETE") {
     const deletionWrites = await env.DB.batch([
-      env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=?").bind(listResource[1],user.id),
-      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE changes() > 0")
-        .bind(randomId(),user.id,"wishlist.delete","wishlist",listResource[1])
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlists WHERE id=? AND owner_id=?)")
+        .bind(randomId(),user.id,"wishlist.delete","wishlist",listResource[1],listResource[1],user.id),
+      env.DB.prepare("DELETE FROM wishlists WHERE id=? AND owner_id=? RETURNING id")
+        .bind(listResource[1],user.id)
     ]);
-    if(!deletionWrites[0].meta.changes) return fail("Liste introuvable.",404);
+    if(!deletionWrites[1].results?.length) return fail("Liste introuvable.",404);
     return json({ok:true},200,headers);
   }
 
@@ -591,13 +592,14 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const owned=await env.DB.prepare("SELECT id FROM wishlists WHERE id=? AND owner_id=?").bind(listId,user.id).first();
     if(!owned)return fail("Liste introuvable.",404);
     const itemDeletionWrites = await env.DB.batch([
-      env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=?").bind(itemId,listId),
-      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE changes() > 0")
-        .bind(randomId(),user.id,"item.delete","wishlist_item",itemId),
-      env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=? AND changes() > 0")
-        .bind(new Date().toISOString(),listId)
+      env.DB.prepare("UPDATE wishlists SET updated_at=? WHERE id=? AND EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
+        .bind(new Date().toISOString(),listId,itemId,listId),
+      env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM wishlist_items WHERE id=? AND wishlist_id=?)")
+        .bind(randomId(),user.id,"item.delete","wishlist_item",itemId,itemId,listId),
+      env.DB.prepare("DELETE FROM wishlist_items WHERE id=? AND wishlist_id=? RETURNING id")
+        .bind(itemId,listId)
     ]);
-    if(!itemDeletionWrites[0].meta.changes)return fail("Cadeau introuvable.",404);
+    if(!itemDeletionWrites[2].results?.length)return fail("Cadeau introuvable.",404);
     return json({ok:true},200,headers);
   }
 
