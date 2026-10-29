@@ -62,7 +62,7 @@ jobs:
           python-version: "3.x"
       - run: npm install --no-save @playwright/test
       - name: Check public homepage copy and labels
-        run: node --test tests/public-copy.test.cjs
+        run: node --test tests/*.test.cjs
       - run: npx playwright install chromium
       - name: Run browser tests
         run: npx playwright test
