@@ -6,7 +6,12 @@ compatibility_date = "2026-10-20"
 APP_ORIGIN = "https://wishly-production.pages.dev"
 
 # Voie A : les fonctions Pages ne font que proxyfier /api vers le worker
-# wishly-production-api (service binding API, configure dans Settings > Functions).
+# wishly-production-api (service binding API ci-dessous, declare en code car
+# l'UI est en lecture seule avec wrangler.toml).
+[[services]]
+binding = "API"
+service = "wishly-production-api"
+
 # La D1 wishly-production-db reste liee au worker, pas au projet Pages :
 # aucune binding D1 ici, sinon le deploiement Pages echoue (Error 8000022).
 # Configure SESSION_PEPPER avec : npx wrangler pages secret put SESSION_PEPPER --project-name wishly-production
