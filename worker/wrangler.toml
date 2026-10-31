@@ -4,15 +4,15 @@ compatibility_date = "2026-10-20"
 workers_dev = true
 
 [vars]
-APP_ORIGIN = "https://ethangalea1000-svg.github.io"
+APP_ORIGIN = "https://wishly-production.pages.dev"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "wishly-production-db"
-database_id = "REPLACE_WITH_NEW_PRODUCTION_D1_DATABASE_ID"
+database_id = "3287b8ce-2e1d-4ce0-865d-77706ba49388"
 migrations_dir = "migrations"
 
-# Create a dedicated production D1 database before deployment.
-# Do not point this binding at wishly-demo-db or any database containing real data.
-# Configure APP_ORIGIN to the exact production origin before enabling writes.
-# Configure SESSION_PEPPER with: npx wrangler secret put SESSION_PEPPER
+# D1 dediee production, deja creee et liee au worker (dashboard).
+# Ne jamais pointer ce binding vers wishly-demo-db ou une base contenant de vraies donnees.
+# APP_ORIGIN = origine exacte du frontend Pages (deja en place cote worker).
+# Configure SESSION_PEPPER avec : npx wrangler secret put SESSION_PEPPER
