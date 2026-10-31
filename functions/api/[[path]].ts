@@ -1,9 +1,7 @@
-import api from "../../worker/src/index";
-
+// Proxy /api/* vers le worker wishly-production-api via service binding (Production).
+// Le worker garde D1 et SESSION_PEPPER : aucun secret duplique cote Pages.
 interface Env {
-  DB: D1Database;
-  APP_ORIGIN: string;
-  SESSION_PEPPER: string;
+  API: Fetcher;
 }
 
-export const onRequest: PagesFunction<Env> = ({ request, env }) => api.fetch(request, env);
+export const onRequest: PagesFunction<Env> = ({ request, env }) => env.API.fetch(request);
