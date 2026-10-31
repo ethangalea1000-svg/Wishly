@@ -11,7 +11,7 @@ interface UserRow {
 interface SessionUser { id: string; email: string; display_name: string; role: string }
 const SESSION_COOKIE = "__Host-wishly_session";
 const SESSION_MS = 1000 * 60 * 60 * 24 * 14;
-const PBKDF2_ITERATIONS = 310000;
+const PBKDF2_ITERATIONS = 100000; // plafond impose par Cloudflare Workers (workerd rejette au-dela)
 const encoder = new TextEncoder();
 
 function json(data: unknown, status = 200, extra: HeadersInit = {}): Response {
