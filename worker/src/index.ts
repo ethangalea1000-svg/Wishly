@@ -1,3 +1,4 @@
+import { verifyStoredPassword, PasswordVerificationUnavailableError } from "./password-verification";
 interface Env {
   DB: D1Database;
   APP_ORIGIN: string;
@@ -241,8 +242,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const user = await env.DB.prepare("SELECT * FROM users WHERE email=? COLLATE NOCASE AND deleted_at IS NULL")
       .bind(email).first<UserRow>();
     if (!user) return fail("E-mail ou mot de passe incorrect.", 401);
-    const calculated = await derivePassword(password, user.password_salt, user.password_iterations);
-    if (calculated !== user.password_hash) return fail("E-mail ou mot de passe incorrect.", 401);
+    const passwordMatches = await verifyStoredPassword(password, user, derivePassword);
+    if (!passwordMatches) return fail("E-mail ou mot de passe incorrect.", 401);
     const session = await createSession(user.id, env);
     headers.append("Set-Cookie", cookie(session.token, Math.floor(SESSION_MS / 1000)));
     return json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role }, sessionToken: session.token }, 200, headers);
@@ -344,8 +345,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
       .bind(user.id).first<{email:string;password_hash:string;password_salt:string;password_iterations:number}>();
     if(!account)return fail("Compte introuvable.",404);
     if(confirmEmail!==account.email.toLowerCase()||password.length===0||password.length>128)return fail("Confirmation invalide.",403);
-    const calculated=await derivePassword(password,account.password_salt,account.password_iterations);
-    if(calculated!==account.password_hash)return fail("Confirmation invalide.",403);
+    const passwordMatches=await verifyStoredPassword(password,account,derivePassword);
+    if(!passwordMatches)return fail("Confirmation invalide.",403);
     await env.DB.batch([
       env.DB.prepare("INSERT INTO audit_events(id,actor_user_id,action,entity_type,entity_id) VALUES(?,?,?,?,?)")
         .bind(randomId(),user.id,"account.delete","user",user.id),
@@ -673,6 +674,10 @@ export default {
         "Access-Control-Allow-Credentials": "true",
         "Vary": "Origin"
       } : {};
+      if (error instanceof PasswordVerificationUnavailableError) {
+        // Do not imply that the password was wrong; never overwrite its stored hash.
+        return fail("Connexion ou confirmation temporairement indisponible. Tes données sont conservées. Réessaie plus tard.", 503, corsHeaders);
+      }
       if (error instanceof RateLimitUnavailableError) {
         return fail("Limitation de débit temporairement indisponible.", 503, corsHeaders);
       }
