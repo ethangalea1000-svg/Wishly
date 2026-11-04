@@ -1,0 +1,191 @@
+name: Worker and browser checks
+
+on:
+  push:
+    branches: [main, production-foundation]
+    paths:
+      - "worker/**"
+      - "production/**"
+      - "wishly-app/**"
+      - "tests/**"
+      - "playwright.config.cjs"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - "worker/**"
+      - "production/**"
+      - "wishly-app/**"
+      - "tests/**"
+      - "playwright.config.cjs"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  # Validate the newest commit instead of queueing behind stale or stalled runs.
+  group: wishly-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  worker-tests:
+    name: API typecheck, tests and migration checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test
+      - run: node --check ../production/app.js
+      - run: node --check ../production/shared.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: python test/migration_check.py
+
+  browser-e2e:
+    name: Browser end-to-end tests (isolated mocked API)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: npm install --no-save @playwright/test
+      - name: Check public homepage copy and labels
+        run: node --test tests/*.test.cjs
+      - run: npx playwright install chromium
+      - name: Run browser tests
+        run: npx playwright test
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wishly-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  local-d1-integration:
+    name: Real API integration against isolated local D1
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Apply migrations to isolated local D1
+        run: npx wrangler d1 migrations apply wishly-production-db --local
+      - name: Start Worker against local D1
+        run: |
+          npx wrangler dev --local --ip 127.0.0.1 --port 8787 --var APP_ORIGIN:http://localhost:8787 --var SESSION_PEPPER:local-integration-secret-which-is-long-enough > /tmp/wishly-local-worker.log 2>&1 &
+          echo $! > /tmp/wishly-local-worker.pid
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:8787/api/health > /dev/null; then
+              echo "Local Worker is healthy."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/wishly-local-worker.log
+          exit 1
+      - name: Exercise real registration, wishlist, sharing and guest reservation flows
+        run: node test/integration-local.mjs
+      - name: Verify new audit coverage on local D1
+        run: node test/audit-coverage-local.mjs
+      - name: Verify reservation changes roll back when audit writes fail
+        run: node test/audit-atomicity-local.mjs
+      - name: Verify authenticated business changes roll back when audit writes fail
+        run: node test/authenticated-audit-atomicity-local.mjs
+      - name: Show Worker logs if integration fails
+        if: failure()
+        run: cat /tmp/wishly-local-worker.log
+
+  live-api-smoke:
+    name: Production API and published frontend smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the published Wishly frontend and its JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://wishly-production.pages.dev"
+          page="$(mktemp)"
+          script="$(mktemp)"
+          page_status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -o "${page}" -w "%{http_code}" "${base}/")"
+          echo "Published frontend HTTP status: ${page_status}"
+          test "${page_status}" = "200"
+          grep -q 'id="authForm"' "${page}"
+          grep -q 'src="./app.js"' "${page}"
+          script_status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -o "${script}" -w "%{http_code}" "${base}/app.js")"
+          echo "Published app.js HTTP status: ${script_status}"
+          test "${script_status}" = "200"
+          grep -q 'auth/me' "${script}"
+          grep -q 'fetch("/api/' "${script}"
+      - name: Verify public API health endpoint from the published site origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://wishly-production.pages.dev"
+          headers="$(mktemp)"
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${origin}/api/health")"
+          echo "Health endpoint HTTP status: ${status}"
+          cat "${body}"
+          test "${status}" = "200"
+          grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
+          grep -q '"status"[[:space:]]*:[[:space:]]*"ok"' "${body}"
+      - name: Verify browser preflight for authenticated API requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://wishly-production.pages.dev"
+          headers="$(mktemp)"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -X OPTIONS -D "${headers}" -o /dev/null -w "%{http_code}" \
+            -H "Origin: ${origin}" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: authorization,content-type" \
+            "${origin}/api/auth/login")"
+          echo "CORS preflight HTTP status: ${status}"
+          echo "CORS preflight response headers:"
+          cat "${headers}"
+          test "${status}" = "204"
+          grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
+          grep -iq "^access-control-allow-methods:.*POST" "${headers}"
+          grep -iq "^access-control-allow-headers:.*authorization" "${headers}"
+
+      - name: Verify API errors remain readable across origins
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://wishly-production.pages.dev"
+          headers="$(mktemp)"
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${origin}/api/lists")"
+          echo "Unauthenticated lists request HTTP status: ${status}"
+          cat "${body}"
+          test "${status}" = "401"
+          grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
+          grep -q 'Authentification requise' "${body}"
+      - name: Verify unknown origins are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: https://origin-inconnu.invalid" -o /dev/null -w "%{http_code}" "https://wishly-production.pages.dev/api/health")"
+          echo "Unknown-origin health HTTP status: ${status}"
+          test "${status}" = "403"
