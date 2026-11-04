@@ -124,7 +124,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base="https://ethangalea1000-svg.github.io/Wishly/wishly-app"
+          base="https://wishly-production.pages.dev"
           page="$(mktemp)"
           script="$(mktemp)"
           page_status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -o "${page}" -w "%{http_code}" "${base}/")"
@@ -135,17 +135,16 @@ jobs:
           script_status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -o "${script}" -w "%{http_code}" "${base}/app.js")"
           echo "Published app.js HTTP status: ${script_status}"
           test "${script_status}" = "200"
-          grep -q 'https://wishly-production-api.ethan-galea1000.workers.dev' "${script}"
           grep -q 'auth/me' "${script}"
+          grep -q 'fetch("/api/' "${script}"
       - name: Verify public API health endpoint from the published site origin
         shell: bash
         run: |
           set -euo pipefail
-          origin="https://ethangalea1000-svg.github.io"
-          api="https://wishly-production-api.ethan-galea1000.workers.dev"
+          origin="https://wishly-production.pages.dev"
           headers="$(mktemp)"
           body="$(mktemp)"
-          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${api}/api/health")"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${origin}/api/health")"
           echo "Health endpoint HTTP status: ${status}"
           cat "${body}"
           test "${status}" = "200"
@@ -155,14 +154,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          origin="https://ethangalea1000-svg.github.io"
-          api="https://wishly-production-api.ethan-galea1000.workers.dev"
+          origin="https://wishly-production.pages.dev"
           headers="$(mktemp)"
           status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -X OPTIONS -D "${headers}" -o /dev/null -w "%{http_code}" \
             -H "Origin: ${origin}" \
             -H "Access-Control-Request-Method: POST" \
             -H "Access-Control-Request-Headers: authorization,content-type" \
-            "${api}/api/auth/login")"
+            "${origin}/api/auth/login")"
           echo "CORS preflight HTTP status: ${status}"
           echo "CORS preflight response headers:"
           cat "${headers}"
@@ -175,13 +173,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          origin="https://ethangalea1000-svg.github.io"
-          api="https://wishly-production-api.ethan-galea1000.workers.dev"
+          origin="https://wishly-production.pages.dev"
           headers="$(mktemp)"
           body="$(mktemp)"
-          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${api}/api/lists")"
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: ${origin}" -D "${headers}" -o "${body}" -w "%{http_code}" "${origin}/api/lists")"
           echo "Unauthenticated lists request HTTP status: ${status}"
           cat "${body}"
           test "${status}" = "401"
           grep -iq "^access-control-allow-origin: ${origin}" "${headers}"
           grep -q 'Authentification requise' "${body}"
+      - name: Verify unknown origins are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -H "Origin: https://origin-inconnu.invalid" -o /dev/null -w "%{http_code}" "https://wishly-production.pages.dev/api/health")"
+          echo "Unknown-origin health HTTP status: ${status}"
+          test "${status}" = "403"
