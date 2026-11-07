@@ -141,7 +141,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          origin="https://ethangalea1000-svg.github.io"
+          origin="https://wishly-production.pages.dev"
           api="https://wishly-production-api.ethan-galea1000.workers.dev"
           headers="$(mktemp)"
           body="$(mktemp)"
@@ -155,7 +155,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          origin="https://ethangalea1000-svg.github.io"
+          origin="https://wishly-production.pages.dev"
           api="https://wishly-production-api.ethan-galea1000.workers.dev"
           headers="$(mktemp)"
           status="$(curl --silent --show-error --connect-timeout 10 --max-time 25 -X OPTIONS -D "${headers}" -o /dev/null -w "%{http_code}" \
@@ -175,7 +175,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          origin="https://ethangalea1000-svg.github.io"
+          origin="https://wishly-production.pages.dev"
           api="https://wishly-production-api.ethan-galea1000.workers.dev"
           headers="$(mktemp)"
           body="$(mktemp)"
